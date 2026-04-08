@@ -1,7 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+// @/app/cashier/page.tsx
 
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { API_BASE, CASHIER_USER_ID } from "@/lib/config";
 import { money } from "@/lib/money";
 import { useWaiters } from "@/hooks/useWaiter";
@@ -18,44 +19,72 @@ import { ActiveOrder } from "@/types";
 export default function CashierPage() {
   const [activeCategory, setActiveCategory] = useState("All");
   const [search, setSearch] = useState("");
-
-  const { waiters, loading: waitersLoading, error: waitersError } = useWaiters();
-  const { categories, filteredMenu, loading: menuLoading, error: menuError } = useMenu(search, activeCategory);
-
-  const { cart, total, addToCart, decQty, incQty, updateComment, clearCart } = useCart();
-
   const [waiterId, setWaiterId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const waiterNameById = new Map(waiters.map((w) => [w.id, w.name]));
 
-
-  const [ordersOpen, setOrdersOpen] = useState(false);
+  const [ordersOpen, setOrdersOpen] = useState(true);
   const [activeOrders, setActiveOrders] = useState<ActiveOrder[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [voidingOrderId, setVoidingOrderId] = useState<string | null>(null);
 
+  const {
+    waiters,
+    loading: waitersLoading,
+    error: waitersError,
+  } = useWaiters();
+
+  const {
+    categories,
+    filteredMenu,
+    loading: menuLoading,
+    error: menuError,
+  } = useMenu(search, activeCategory);
+
+  const {
+    cart,
+    total,
+    addToCart,
+    decQty,
+    incQty,
+    updateComment,
+    clearCart,
+  } = useCart();
+
+  const waiterNameById = useMemo(
+    () => new Map(waiters.map((w) => [w.id, w.name])),
+    [waiters]
+  );
+
   const loadError = menuError || waitersError;
   const loading = menuLoading || waitersLoading;
 
-  // auto pick first waiter when loaded
   useEffect(() => {
     if (!waiterId && waiters.length > 0) {
       setWaiterId(waiters[0].id);
     }
   }, [waiters, waiterId]);
 
+  useEffect(() => {
+    if (ordersOpen) {
+      fetchActiveOrders();
+    }
+  }, [ordersOpen]);
+
   async function submitOrder() {
     if (!waiterId) {
       alert("Pick a waiter first.");
       return;
     }
+
     if (!CASHIER_USER_ID) {
       alert("Missing NEXT_PUBLIC_CASHIER_USER_ID in .env.local");
       return;
     }
+
     if (cart.length === 0) return;
 
     setSubmitting(true);
+
     try {
       const payload = {
         waiter_id: waiterId,
@@ -74,9 +103,17 @@ export default function CashierPage() {
       });
 
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error((data as any)?.error || `Order failed (${res.status})`);
 
-      alert(`Order sent! OrderId: ${(data as any).orderId}\nTotal: ${money(Number((data as any).total))}`);
+      if (!res.ok) {
+        throw new Error((data as any)?.error || `Order failed (${res.status})`);
+      }
+
+      alert(
+        `Order sent! OrderId: ${(data as any).orderId}\nTotal: ${money(
+          Number((data as any).total)
+        )}`
+      );
+
       clearCart();
       setOrdersOpen(true);
       await fetchActiveOrders();
@@ -89,13 +126,17 @@ export default function CashierPage() {
 
   async function fetchActiveOrders() {
     setOrdersLoading(true);
+
     try {
       const res = await fetch(`${API_BASE}/orders/active-with-items`, {
         cache: "no-store",
       });
 
       const data = await res.json().catch(() => []);
-      if (!res.ok) throw new Error((data as any)?.error || "Failed to load orders");
+
+      if (!res.ok) {
+        throw new Error((data as any)?.error || "Failed to load orders");
+      }
 
       setActiveOrders(Array.isArray(data) ? data : []);
     } catch (e: any) {
@@ -112,6 +153,7 @@ export default function CashierPage() {
     }
 
     setVoidingOrderId(orderId);
+
     try {
       const res = await fetch(`${API_BASE}/orders/${orderId}/status`, {
         method: "PATCH",
@@ -123,7 +165,10 @@ export default function CashierPage() {
       });
 
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error((data as any)?.error || `Void failed (${res.status})`);
+
+      if (!res.ok) {
+        throw new Error((data as any)?.error || `Void failed (${res.status})`);
+      }
 
       await fetchActiveOrders();
       alert("Order voided.");
@@ -134,292 +179,390 @@ export default function CashierPage() {
     }
   }
 
-  useEffect(() => {
-    if (ordersOpen) {
-      fetchActiveOrders();
-    }
-  }, [ordersOpen]);
-
   return (
-    <div className="h-screen flex flex-col overflow-hidden bg-slate-950">
-      {/* Header */}
-      <div className="px-4 py-3 border-b/30 border-white/10 flex items-center justify-between gap-3">
-        <div className="flex flex-col">
-          <div className="text-lg font-extrabold tracking-tight text-white">Cashier</div>
-          <div className="text-xs text-white/70">Tablet ordering</div>
-        </div>
-
-        <div className="flex items-center gap-2 w-[min(60vw,720px)] justify-end">
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={() => setOrdersOpen((v) => !v)}
-            className="bg-slate-800/70 text-white border border-white/10 hover:bg-slate-800"
-          >
-            {ordersOpen ? "Hide Orders" : `Orders (${activeOrders.length})`}
-          </Button>
-
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={() => {
-              setOrdersOpen(true);
-              fetchActiveOrders();
-            }}
-            className="bg-slate-800/70 text-white border border-white/10 hover:bg-slate-800"
-          >
-            Refresh Orders
-          </Button>
-
-          <div className="w-90 max-w-[55vw]">
-            <Input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search menu…"
-              className="bg-slate-900/70 border-white/10 text-white placeholder:text-white/50 focus-visible:ring-teal-500/40"
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* vertical split */}
-      {ordersOpen && (
-        <Card className="p-3 bg-white/5 border-white/10 backdrop-blur">
-          <div className="flex items-center justify-between gap-3">
-            <div className="text-base font-extrabold text-white">
-              Active Orders
-            </div>
-            <div className="text-xs text-white/60">
-              Pending orders currently in the system
-            </div>
-          </div>
-
-          <Separator className="my-3 bg-white/10" />
-
-          {ordersLoading ? (
-            <div className="text-sm text-white/70">Loading orders…</div>
-          ) : activeOrders.length === 0 ? (
-            <div className="text-sm text-white/70">No active orders.</div>
-          ) : (
-            <ScrollArea className="max-h-65 pr-2">
-              <div className="flex flex-col gap-2">
-                {activeOrders.map(({ order, items }) => (
-                  <Card key={order.id} className="p-3 bg-white/6 border-white/10">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <div className="font-semibold text-white">
-                          Order #{order.id.slice(0, 8)}
-                        </div>
-                        <div className="text-xs text-white/60">
-                          {new Date(order.created_at).toLocaleString()}
-                        </div>
-                        <div className="text-xs text-white/60">
-                          Waiter: {order.waiter_id ? waiterNameById.get(order.waiter_id) || "Unknown" : "N/A"}
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <div className="font-extrabold tabular-nums text-white">
-                          {money(Number(order.total_amount))}
-                        </div>
-
-                        <Button
-                          type="button"
-                          variant="destructive"
-                          onClick={() => voidOrder(order.id)}
-                          disabled={voidingOrderId === order.id}
-                          className="h-9"
-                        >
-                          {voidingOrderId === order.id ? "Voiding..." : "Void"}
-                        </Button>
-                      </div>
-                    </div>
-
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {items.map((item) => (
-                        <Badge
-                          key={item.id}
-                          variant="outline"
-                          className="border-white/20 text-white/85"
-                        >
-                          {item.quantity}× {item.name}
-                        </Badge>
-                      ))}
-                    </div>
-                  </Card>
-                ))}
-              </div>
-            </ScrollArea>
-          )}
-        </Card>
-      )}
-      <div className="flex-1 min-h-0 flex flex-col gap-3 p-3">
-        {/* TOP: Menu */}
-        <Card className="min-h-0 flex-[0_0_62%] p-3 bg-white/5 border-white/10 backdrop-blur">
-          <ScrollArea className="w-full">
-            <div className="flex gap-2 pb-2">
-              {categories.map((c) => {
-                const active = activeCategory === c;
-                return (
-                  <Button
-                    key={c}
-                    onClick={() => setActiveCategory(c)}
-                    className={[
-                      "rounded-full h-10 px-4 whitespace-nowrap border",
-                      active
-                        ? "bg-teal-500 text-slate-950 border-teal-400 hover:bg-teal-400"
-                        : "bg-slate-800/70 text-white border-white/10 hover:bg-slate-800",
-                    ].join(" ")}
-                    variant={active ? "default" : "secondary"}
-                  >
-                    {c}
-                  </Button>
-                );
-              })}
-            </div>
-          </ScrollArea>
-
-          <Separator className="my-2 bg-white/10" />
-
-          {loading ? (
-            <div className="text-sm text-white/70">Loading…</div>
-          ) : loadError ? (
-            <div className="text-sm text-red-300">{loadError}</div>
-          ) : (
-            <ScrollArea className="h-[calc(100%-70px)] pr-2">
-              <div className="grid gap-2 grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-                {filteredMenu.map((m) => (
-                  <Button
-                    key={m.id}
-                    onClick={() => addToCart(m)}
-                    variant="ghost"
-                    className="h-auto p-3 rounded-2xl justify-start text-left flex-col items-start gap-2
-                    bg-transparent hover:bg-transparent
-                    bg-linear-to-b from-white/12 to-white/6 hover:from-white/18 hover:to-white/10
-                    border border-white/10"
-                  >
-                    <div className="font-semibold leading-tight text-white">{m.name}</div>
-                    <div className="w-full flex items-center justify-between gap-2">
-                      <Badge variant="outline" className="max-w-[70%] truncate border-white/20 text-white/85">
-                        {m.category_name}
-                      </Badge>
-                      <div className="font-extrabold tabular-nums text-white">{money(Number(m.price))}</div>
-                    </div>
-                    <div className="text-xs text-white/65">Tap to add</div>
-                  </Button>
-                ))}
-              </div>
-            </ScrollArea>
-          )}
-        </Card>
-
-        {/* BOTTOM: Order */}
-        <Card className="min-h-0 flex-[0_0_38%] p-3 bg-white/5 border-white/10 backdrop-blur">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className="text-base font-extrabold text-white">Order</div>
-
-              <div className="flex flex-wrap gap-2">
-                {waiters.map((w) => {
-                  const active = waiterId === w.id;
-
-                  return (
-                    <Button
-                      key={w.id}
-                      type="button"
-                      onClick={() => setWaiterId(w.id)} // only changes when user clicks
-                      variant="secondary"
-                      className={[
-                        "h-10 px-4 rounded-full border transition",
-                        active
-                          ? "bg-teal-500 text-slate-950 border-teal-400 hover:bg-teal-400"
-                          : "bg-slate-800/70 text-white border-white/10 hover:bg-slate-800 hover:border-white/20",
-                      ].join(" ")}
-                    >
-                      {w.name}
-                    </Button>
-                  );
-                })}
-              </div>
+    <div className="h-screen overflow-hidden bg-slate-950 text-white">
+      <div className="flex h-full min-h-0 flex-col">
+        {/* Header */}
+        <header className="border-b border-white/10 bg-slate-950 px-4 py-3">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <h1 className="text-xl font-extrabold tracking-tight">Cashier</h1>
+              <p className="text-sm text-white/60">Fast tablet order entry</p>
             </div>
 
-            <Button variant="ghost" onClick={clearCart} disabled={cart.length === 0 || submitting} className="text-white hover:bg-white/10">
-              Clear
-            </Button>
-          </div>
-
-          <Separator className="my-3 bg-white/10" />
-
-          <div className="min-h-0 grid grid-cols-1 lg:grid-cols-[1fr_260px] gap-3">
-            <ScrollArea className="min-h-0 pr-2">
-              {cart.length === 0 ? (
-                <div className="text-sm text-white/70">No items yet. Tap menu items to add.</div>
-              ) : (
-                <div className="flex flex-col gap-2">
-                  {cart.map((it) => (
-                    <Card key={it.menu_item_id} className="p-3 bg-white/6 border-white/10">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="font-semibold leading-tight text-white">{it.name}</div>
-                        <div className="font-extrabold tabular-nums text-white">{money(it.price * it.quantity)}</div>
-                      </div>
-
-                      <div className="mt-2 flex items-center gap-2">
-                        <Button
-                          variant="secondary"
-                          className="h-11 w-11 p-0 text-lg bg-slate-800/70 text-white border border-white/10 hover:border-teal-400/60 hover:bg-slate-800"
-                          onClick={() => decQty(it.menu_item_id)}
-                          disabled={submitting}
-                        >
-                          –
-                        </Button>
-
-                        <div className="w-10 text-center font-extrabold tabular-nums text-white">{it.quantity}</div>
-
-                        <Button
-                          variant="secondary"
-                          className="h-11 w-11 p-0 text-lg bg-slate-800/70 text-white border border-white/10 hover:border-teal-400/60 hover:bg-slate-800"
-                          onClick={() => incQty(it.menu_item_id)}
-                          disabled={submitting}
-                        >
-                          +
-                        </Button>
-
-                        <div className="ml-auto text-xs text-white/65 tabular-nums">@ {money(it.price)}</div>
-                      </div>
-
-                      <div className="mt-2">
-                        <Input
-                          value={it.comment}
-                          onChange={(e) => updateComment(it.menu_item_id, e.target.value)}
-                          placeholder="Note (e.g. no onions)"
-                          disabled={submitting}
-                          className="bg-slate-900/70 border-white/10 text-white placeholder:text-white/50 focus-visible:ring-teal-500/40"
-                        />
-                      </div>
-                    </Card>
-                  ))}
-                </div>
-              )}
-            </ScrollArea>
-
-            <Card className="p-3 bg-white/6 border-white/10 flex flex-col gap-3">
-              <div className="flex items-center justify-between text-base">
-                <span className="text-white/70">Total</span>
-                <span className="font-extrabold tabular-nums text-white">{money(total)}</span>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <div className="w-full sm:w-[320px]">
+                <Input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search menu..."
+                  className="h-12 border-white/10 bg-slate-900/70 text-base text-white placeholder:text-white/45 focus-visible:ring-teal-500/40"
+                />
               </div>
 
               <Button
-                onClick={submitOrder}
-                disabled={cart.length === 0 || submitting || !waiterId}
-                className="h-12 text-base font-extrabold bg-amber-400 text-slate-950 hover:bg-amber-300"
+                type="button"
+                variant="secondary"
+                onClick={() => setOrdersOpen((v) => !v)}
+                className="h-12 border border-white/10 bg-slate-800/70 px-4 text-white hover:bg-slate-800"
               >
-                {submitting ? "Sending…" : "Send to Kitchen"}
+                {ordersOpen ? "Hide Orders" : `Show Orders (${activeOrders.length})`}
               </Button>
 
-              <div className="text-xs text-white/60">Connected to live API.</div>
-            </Card>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => {
+                  setOrdersOpen(true);
+                  fetchActiveOrders();
+                }}
+                className="h-12 border border-white/10 bg-slate-800/70 px-4 text-white hover:bg-slate-800"
+              >
+                Refresh
+              </Button>
+            </div>
           </div>
-        </Card>
+        </header>
+
+        {/* Main */}
+        <main className="flex-1 min-h-0 overflow-hidden p-3">
+          <div
+            className={[
+              "grid h-full min-h-0 gap-3",
+              ordersOpen ? "xl:grid-cols-[1.35fr_430px]" : "grid-cols-1",
+            ].join(" ")}
+          >
+            {/* Left side */}
+            <section className="min-h-0 flex flex-col gap-3">
+              {/* Menu */}
+              <Card className="flex min-h-0 flex-1 flex-col border-white/10 bg-white/5 p-3 backdrop-blur">
+                <div className="shrink-0">
+                  <ScrollArea className="w-full whitespace-nowrap">
+                    <div className="flex gap-2 pb-2">
+                      {categories.map((c) => {
+                        const active = activeCategory === c;
+
+                        return (
+                          <Button
+                            key={c}
+                            onClick={() => setActiveCategory(c)}
+                            variant={active ? "default" : "secondary"}
+                            className={[
+                              "h-11 rounded-full border px-4 text-sm whitespace-nowrap",
+                              active
+                                ? "border-teal-400 bg-teal-500 text-slate-950 hover:bg-teal-400"
+                                : "border-white/10 bg-slate-800/70 text-white hover:bg-slate-800",
+                            ].join(" ")}
+                          >
+                            {c}
+                          </Button>
+                        );
+                      })}
+                    </div>
+                  </ScrollArea>
+                </div>
+
+                <Separator className="my-3 shrink-0 bg-white/10" />
+
+                <div className="min-h-0 flex-1">
+                  {loading ? (
+                    <div className="text-sm text-white/70">Loading...</div>
+                  ) : loadError ? (
+                    <div className="text-sm text-red-300">{loadError}</div>
+                  ) : (
+                    <ScrollArea className="h-full pr-2">
+                      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+                        {filteredMenu.map((m) => (
+                          <Button
+                            key={m.id}
+                            onClick={() => addToCart(m)}
+                            variant="ghost"
+                            className="h-31 rounded-2xl border border-white/10 bg-linear-to-b from-white/12 to-white/6 p-3 text-left hover:from-white/18 hover:to-white/10"
+                          >
+                            <div className="flex h-full w-full flex-col items-start justify-between">
+                              <div className="line-clamp-2 text-sm font-bold leading-tight text-white">
+                                {m.name}
+                              </div>
+
+                              <div className="w-full">
+                                <Badge
+                                  variant="outline"
+                                  className="mb-2 max-w-full truncate border-white/20 text-white/80"
+                                >
+                                  {m.category_name}
+                                </Badge>
+
+                                <div className="text-base font-extrabold tabular-nums text-white">
+                                  {money(Number(m.price))}
+                                </div>
+                              </div>
+                            </div>
+                          </Button>
+                        ))}
+                      </div>
+                    </ScrollArea>
+                  )}
+                </div>
+              </Card>
+
+              {/* Order entry */}
+              <Card className="flex min-h-0 flex-[0_0_42%] flex-col border-white/10 bg-white/5 p-3 backdrop-blur">
+                <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+                  <div className="min-w-0 flex-1">
+                    <div className="mb-2">
+                      <div className="text-lg font-extrabold text-white">
+                        Current Order
+                      </div>
+                      <div className="text-xs text-white/60">
+                        {cart.length} item{cart.length === 1 ? "" : "s"}
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="mb-2 text-sm font-semibold text-white/75">
+                        Waiter
+                      </div>
+                      <ScrollArea className="w-full whitespace-nowrap">
+                        <div className="flex gap-2 pb-2">
+                          {waiters.map((w) => {
+                            const active = waiterId === w.id;
+
+                            return (
+                              <Button
+                                key={w.id}
+                                type="button"
+                                onClick={() => setWaiterId(w.id)}
+                                variant="secondary"
+                                className={[
+                                  "h-11 rounded-full border px-4",
+                                  active
+                                    ? "border-teal-400 bg-teal-500 text-slate-950 hover:bg-teal-400"
+                                    : "border-white/10 bg-slate-800/70 text-white hover:border-white/20 hover:bg-slate-800",
+                                ].join(" ")}
+                              >
+                                {w.name}
+                              </Button>
+                            );
+                          })}
+                        </div>
+                      </ScrollArea>
+                    </div>
+                  </div>
+
+                  <Button
+                    variant="ghost"
+                    onClick={clearCart}
+                    disabled={cart.length === 0 || submitting}
+                    className="h-11 shrink-0 text-white hover:bg-white/10"
+                  >
+                    ያጥፉ
+                  </Button>
+                </div>
+
+                <Separator className="my-3 bg-white/10" />
+
+                <div className="grid min-h-0 flex-1 gap-3 lg:grid-cols-[1fr_280px]">
+                  {/* Cart items */}
+                  <div className="min-h-0 overflow-hidden">
+                    <ScrollArea className="h-full pr-2">
+                      {cart.length === 0 ? (
+                        <div className="rounded-2xl border border-dashed border-white/10 p-6 text-sm text-white/70">
+                          ምንም ነገር አልተመረጠም።
+                        </div>
+                      ) : (
+                        <div className="flex flex-col gap-3">
+                          {cart.map((it) => (
+                            <Card
+                              key={it.menu_item_id}
+                              className="border-white/10 bg-white/6 p-3"
+                            >
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="font-semibold leading-tight text-white">
+                                  {it.name}
+                                </div>
+                                <div className="font-extrabold tabular-nums text-white">
+                                  {money(it.price * it.quantity)}
+                                </div>
+                              </div>
+
+                              <div className="mt-3 flex items-center gap-2">
+                                <Button
+                                  variant="secondary"
+                                  className="h-12 w-12 border border-white/10 bg-slate-800/70 p-0 text-lg text-white hover:border-teal-400/60 hover:bg-slate-800"
+                                  onClick={() => decQty(it.menu_item_id)}
+                                  disabled={submitting}
+                                >
+                                  –
+                                </Button>
+
+                                <div className="w-12 text-center text-lg font-extrabold tabular-nums text-white">
+                                  {it.quantity}
+                                </div>
+
+                                <Button
+                                  variant="secondary"
+                                  className="h-12 w-12 border border-white/10 bg-slate-800/70 p-0 text-lg text-white hover:border-teal-400/60 hover:bg-slate-800"
+                                  onClick={() => incQty(it.menu_item_id)}
+                                  disabled={submitting}
+                                >
+                                  +
+                                </Button>
+
+                                <div className="ml-auto text-xs tabular-nums text-white/65">
+                                  @ {money(it.price)}
+                                </div>
+                              </div>
+
+                              <div className="mt-3">
+                                <Input
+                                  value={it.comment}
+                                  onChange={(e) =>
+                                    updateComment(it.menu_item_id, e.target.value)
+                                  }
+                                  placeholder="Note (e.g. no onions)"
+                                  disabled={submitting}
+                                  className="h-11 border-white/10 bg-slate-900/70 text-white placeholder:text-white/50 focus-visible:ring-teal-500/40"
+                                />
+                              </div>
+                            </Card>
+                          ))}
+                        </div>
+                      )}
+                    </ScrollArea>
+                  </div>
+
+                  {/* Summary */}
+                  <Card className="flex flex-col gap-3 border-white/10 bg-white/6 p-3">
+                    <div className="rounded-xl border border-white/10 bg-slate-900/30 p-3">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-white/70">Items</span>
+                        <span className="font-bold tabular-nums text-white">
+                          {cart.reduce((sum, item) => sum + item.quantity, 0)}
+                        </span>
+                      </div>
+
+                      <Separator className="my-3 bg-white/10" />
+
+                      <div className="flex items-center justify-between text-base">
+                        <span className="text-white/70">ጠቅላላ</span>
+                        <span className="text-2xl font-extrabold tabular-nums text-white">
+                          {money(total)}
+                        </span>
+                      </div>
+                    </div>
+
+                    <Button
+                      onClick={submitOrder}
+                      disabled={cart.length === 0 || submitting || !waiterId}
+                      className="h-14 w-full text-base font-extrabold text-slate-950 bg-amber-400 hover:bg-amber-300"
+                    >
+                      {submitting ? "Sending..." : "ወደ ኩሽና ይላኩ"}
+                    </Button>
+
+                    <div className="text-center text-xs text-white/60">
+                      Connected to live API.
+                    </div>
+                  </Card>
+                </div>
+              </Card>
+            </section>
+
+            {/* Right side active orders */}
+            {ordersOpen && (
+              <aside className="min-h-0 overflow-hidden">
+                <Card className="flex h-full min-h-0 flex-col border-white/10 bg-white/5 p-3 backdrop-blur">
+                  <div className="shrink-0">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="text-lg font-extrabold text-white">
+                          Active Orders
+                        </div>
+                        <div className="text-xs text-white/60">
+                          Pending orders currently in the system
+                        </div>
+                      </div>
+
+                      <Badge
+                        variant="outline"
+                        className="border-white/20 text-white/85"
+                      >
+                        {activeOrders.length}
+                      </Badge>
+                    </div>
+
+                    <Separator className="my-3 bg-white/10" />
+                  </div>
+
+                  <div className="min-h-0 flex-1">
+                    {ordersLoading ? (
+                      <div className="text-sm text-white/70">Loading orders...</div>
+                    ) : activeOrders.length === 0 ? (
+                      <div className="rounded-2xl border border-dashed border-white/10 p-6 text-sm text-white/70">
+                        No active orders.
+                      </div>
+                    ) : (
+                      <ScrollArea className="h-full pr-2">
+                        <div className="flex flex-col gap-3">
+                          {activeOrders.map(({ order, items }) => (
+                            <Card
+                              key={order.id}
+                              className="border-white/10 bg-white/6 p-3"
+                            >
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                  <div className="font-semibold text-white">
+                                    Order #{order.id.slice(0, 8)}
+                                  </div>
+                                  <div className="mt-1 text-xs text-white/60">
+                                    {new Date(order.created_at).toLocaleString()}
+                                  </div>
+                                  <div className="text-xs text-white/60">
+                                    Waiter:{" "}
+                                    {order.waiter_id
+                                      ? waiterNameById.get(order.waiter_id) || "Unknown"
+                                      : "N/A"}
+                                  </div>
+                                </div>
+
+                                <div className="text-right">
+                                  <div className="font-extrabold tabular-nums text-white">
+                                    {money(Number(order.total_amount))}
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="mt-3 flex flex-wrap gap-2">
+                                {items.map((item) => (
+                                  <Badge
+                                    key={item.id}
+                                    variant="outline"
+                                    className="border-white/20 text-white/85"
+                                  >
+                                    {item.quantity}× {item.name}
+                                  </Badge>
+                                ))}
+                              </div>
+
+                              <Button
+                                type="button"
+                                variant="destructive"
+                                onClick={() => voidOrder(order.id)}
+                                disabled={voidingOrderId === order.id}
+                                className="mt-3 h-10 w-full"
+                              >
+                                {voidingOrderId === order.id ? "Voiding..." : "Void Order"}
+                              </Button>
+                            </Card>
+                          ))}
+                        </div>
+                      </ScrollArea>
+                    )}
+                  </div>
+                </Card>
+              </aside>
+            )}
+          </div>
+        </main>
       </div>
     </div>
   );

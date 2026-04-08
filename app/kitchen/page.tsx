@@ -1,4 +1,5 @@
 /* eslint-disable react-hooks/purity */
+// @/app/kitchen/page.tsx
 
 "use client";
 import { useMemo, useState } from "react";
