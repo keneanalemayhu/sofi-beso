@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/dialog";
 
 export default function CashierPage() {
-  const [activeCategory, setActiveCategory] = useState("ሁሉም");
+  const [activeCategory, setActiveCategory] = useState("All");
   const [search, setSearch] = useState("");
   const [waiterId, setWaiterId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
