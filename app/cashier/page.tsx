@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/dialog";
 
 export default function CashierPage() {
-  const [activeCategory, setActiveCategory] = useState("All");
+  const [activeCategory, setActiveCategory] = useState("ሁሉም");
   const [search, setSearch] = useState("");
   const [waiterId, setWaiterId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -110,14 +110,7 @@ export default function CashierPage() {
         throw new Error((data as any)?.error || `Order failed (${res.status})`);
       }
 
-      alert(
-        `Order sent! OrderId: ${(data as any).orderId}\nTotal: ${money(
-          Number((data as any).total)
-        )}`
-      );
-
       clearCart();
-      setOrdersOpen(true);
       await fetchActiveOrders();
     } catch (e: any) {
       alert(e?.message || "Failed to submit order");
@@ -173,7 +166,6 @@ export default function CashierPage() {
       }
 
       await fetchActiveOrders();
-      alert("Order voided.");
     } catch (e: any) {
       alert(e?.message || "Failed to void order");
     } finally {
@@ -189,7 +181,6 @@ export default function CashierPage() {
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <h1 className="text-xl font-extrabold tracking-tight">Cashier</h1>
-              <p className="text-sm text-white/60">Fast tablet order entry</p>
             </div>
 
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
@@ -197,7 +188,7 @@ export default function CashierPage() {
                 <Input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search menu..."
+                  placeholder="ሜኑ ላይ ይፍልጉ..."
                   className="h-12 border-white/10 bg-slate-900/70 text-base text-white placeholder:text-white/45 focus-visible:ring-teal-500/40"
                 />
               </div>
@@ -217,7 +208,7 @@ export default function CashierPage() {
                     variant="secondary"
                     className="h-12 border border-white/10 bg-slate-800/70 px-4 text-white hover:bg-slate-800"
                   >
-                    Show Orders ({activeOrders.length})
+                    ትእዛዞችን አሳይ ({activeOrders.length})
                   </Button>
                 </DialogTrigger>
 
@@ -260,7 +251,7 @@ export default function CashierPage() {
                           {activeOrders.map(({ order, items }) => (
                             <Card
                               key={order.id}
-                              className="border-white/10 bg-white/6 p-3"
+                              className="border-white/10 bg-white/5 hover:bg-white/8 p-3"
                             >
                               <div className="flex items-start justify-between gap-3">
                                 <div className="min-w-0">
@@ -338,7 +329,7 @@ export default function CashierPage() {
                             "h-11 rounded-full border px-4 text-sm whitespace-nowrap",
                             active
                               ? "border-teal-400 bg-teal-500 text-slate-950 hover:bg-teal-400"
-                              : "border-white/10 bg-slate-800/70 text-white hover:bg-slate-800",
+                              : "border-white/10 bg-slate-800/70 text-white hover:bg-slate-700 hover:border-teal-400/50",
                           ].join(" ")}
                         >
                           {c}
@@ -364,7 +355,7 @@ export default function CashierPage() {
                           key={m.id}
                           onClick={() => addToCart(m)}
                           variant="ghost"
-                          className="h-31 rounded-2xl border border-white/10 bg-linear-to-b from-white/12 to-white/6 p-3 text-left hover:from-white/18 hover:to-white/10"
+                          className="h-31 rounded-2xl border border-white/10 bg-linear-to-b from-white/12 to-white/6 p-3 text-left hover:from-white/12 hover:to-white/6 hover:border-teal-400/50 active:scale-[0.98]"
                         >
                           <div className="flex h-full w-full flex-col items-start justify-between">
                             <div className="line-clamp-2 text-sm font-bold leading-tight text-white">
@@ -398,13 +389,12 @@ export default function CashierPage() {
                 <div className="min-w-0 flex-1">
                   <div className="mb-2">
                     <div className="text-lg font-extrabold text-white">
-                      Current Order
+                      የአሁን ትእዛዞች
                     </div>
                     <div className="text-xs text-white/60">
                       {cart.length} item{cart.length === 1 ? "" : "s"}
                     </div>
                   </div>
-
                   <div>
                     <div className="mb-2 text-sm font-semibold text-white/75">
                       Waiter
@@ -424,7 +414,7 @@ export default function CashierPage() {
                                 "h-11 rounded-full border px-4",
                                 active
                                   ? "border-teal-400 bg-teal-500 text-slate-950 hover:bg-teal-400"
-                                  : "border-white/10 bg-slate-800/70 text-white hover:border-white/20 hover:bg-slate-800",
+                                  : "border-white/10 bg-slate-800/70 text-white hover:bg-slate-700 hover:border-teal-400/50",
                               ].join(" ")}
                             >
                               {w.name}
@@ -440,7 +430,7 @@ export default function CashierPage() {
                   variant="ghost"
                   onClick={clearCart}
                   disabled={cart.length === 0 || submitting}
-                  className="h-11 shrink-0 text-white hover:bg-white/10"
+                  className="h-11 shrink-0 text-white hover:bg-slate-700"
                 >
                   ያጥፉ
                 </Button>
@@ -461,7 +451,7 @@ export default function CashierPage() {
                         {cart.map((it) => (
                           <Card
                             key={it.menu_item_id}
-                            className="border-white/10 bg-white/6 p-3"
+                            className="border-white/10 bg-white/5 hover:bg-white/8 p-3"
                           >
                             <div className="flex items-start justify-between gap-3">
                               <div className="font-semibold leading-tight text-white">
@@ -475,7 +465,7 @@ export default function CashierPage() {
                             <div className="mt-3 flex items-center gap-2">
                               <Button
                                 variant="secondary"
-                                className="h-12 w-12 border border-white/10 bg-slate-800/70 p-0 text-lg text-white hover:border-teal-400/60 hover:bg-slate-800"
+                                className="h-12 w-12 border border-white/10 bg-slate-800/70 p-0 text-lg text-white hover:border-teal-400 hover:bg-slate-700"
                                 onClick={() => decQty(it.menu_item_id)}
                                 disabled={submitting}
                               >
@@ -488,7 +478,7 @@ export default function CashierPage() {
 
                               <Button
                                 variant="secondary"
-                                className="h-12 w-12 border border-white/10 bg-slate-800/70 p-0 text-lg text-white hover:border-teal-400/60 hover:bg-slate-800"
+                                className="h-12 w-12 border border-white/10 bg-slate-800/70 p-0 text-lg text-white hover:border-teal-400 hover:bg-slate-700"
                                 onClick={() => incQty(it.menu_item_id)}
                                 disabled={submitting}
                               >
@@ -519,35 +509,37 @@ export default function CashierPage() {
                 </div>
 
                 {/* Summary */}
-                <Card className="flex flex-col gap-3 border-white/10 bg-white/6 p-3 sticky bottom-0">
-                  <div className="rounded-xl border border-white/10 bg-slate-900/30 p-3">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-white/70">Items</span>
-                      <span className="font-bold tabular-nums text-white">
-                        {cart.reduce((sum, item) => sum + item.quantity, 0)}
-                      </span>
+                <Card className="flex flex-col gap-3 border-white/10 bg-white/5 hover:bg-white/8 p-3 sticky bottom-0 h-full">
+                  <div className="flex-1">
+                    <div className="rounded-xl border border-white/10 bg-slate-900/30 p-3">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-white/70">ምግቦች</span>
+                        <span className="font-bold tabular-nums text-white">
+                          {cart.reduce((sum, item) => sum + item.quantity, 0)}
+                        </span>
+                      </div>
+
+                      <Separator className="my-3 bg-white/10" />
+
+                      <div className="flex items-center justify-between text-base">
+                        <span className="text-white/70">ጠቅላላ</span>
+                        <span className="text-2xl font-extrabold tabular-nums text-white">
+                          {money(total)}
+                        </span>
+                      </div>
                     </div>
 
-                    <Separator className="my-3 bg-white/10" />
+                    <Button
+                      onClick={submitOrder}
+                      disabled={cart.length === 0 || submitting || !waiterId}
+                      className="h-14 w-full text-base font-extrabold text-slate-950 bg-amber-400 hover:bg-amber-300"
+                    >
+                      {submitting ? "Sending..." : "ወደ ኩሽና ይላኩ"}
+                    </Button>
 
-                    <div className="flex items-center justify-between text-base">
-                      <span className="text-white/70">ጠቅላላ</span>
-                      <span className="text-2xl font-extrabold tabular-nums text-white">
-                        {money(total)}
-                      </span>
+                    <div className="text-center text-xs text-white/60 mt-1">
+                      Connected to live API.
                     </div>
-                  </div>
-
-                  <Button
-                    onClick={submitOrder}
-                    disabled={cart.length === 0 || submitting || !waiterId}
-                    className="h-14 w-full text-base font-extrabold text-slate-950 bg-amber-400 hover:bg-amber-300"
-                  >
-                    {submitting ? "Sending..." : "ወደ ኩሽና ይላኩ"}
-                  </Button>
-
-                  <div className="text-center text-xs text-white/60">
-                    Connected to live API.
                   </div>
                 </Card>
               </div>
