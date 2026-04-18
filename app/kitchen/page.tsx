@@ -61,6 +61,7 @@ export default function KitchenPage() {
                     status={o.order.status}
                     createdAt={o.order.created_at}
                     waiterName={o.order.waiter_name ?? "Unknown waiter"}
+                    servingMode={o.order.serving_mode ?? "individual"}
                     items={o.items.map((i) => ({
                       name: i.name,
                       qty: i.quantity,
@@ -82,12 +83,14 @@ function OrderRow({
   status,
   createdAt,
   waiterName,
+  servingMode,
   items,
   onComplete,
 }: {
   status: string;
   createdAt: string;
   waiterName: string;
+  servingMode: "individual" | "shared_tray";
   items: { name: string; qty: number; comment: string }[];
   onComplete: () => void;
 }) {
@@ -139,6 +142,9 @@ function OrderRow({
                 {items.map((it) => `${it.name} x${it.qty}`).join(" • ")}
               </div>
               <div className="text-xs text-white/60">{minutes} min ago</div>
+              <div className="mt-1 text-xs font-bold text-amber-200">
+                {servingMode === "shared_tray" ? "አንድ ላይ" : "የተለያዩ ትእዛዞች"}
+              </div>
             </div>
 
             <div className="flex items-center gap-2">

@@ -2,7 +2,7 @@
 // @/app/cashier/page.tsx
 
 "use client";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { API_BASE, CASHIER_USER_ID } from "@/lib/config";
 import { money } from "@/lib/money";
 import { useWaiters } from "@/hooks/useWaiter";
@@ -61,11 +61,6 @@ export default function CashierPage() {
     updateComment,
     clearCart,
   } = useCart();
-
-  const waiterNameById = useMemo(
-    () => new Map(waiters.map((w) => [w.id, w.name])),
-    [waiters]
-  );
 
   const loadError = menuError || waitersError;
   const loading = menuLoading || waitersLoading;
