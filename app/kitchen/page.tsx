@@ -114,7 +114,6 @@ function OrderRow({
     return Math.max(0, m);
   }, [createdAt]);
 
-  const swipeProgress = Math.min(1, dx / threshold);
 
   return (
     <div className="relative">
@@ -171,16 +170,8 @@ function OrderRow({
           </div>
 
           {/* Visible swipe hint + progress */}
-          <div className="mt-3 flex items-center justify-between">
-            <div className="text-xs text-white/70">
-              Waiter: <span className="font-semibold text-white">{waiterName}</span>
-            </div>
-            <div className="h-2 w-40 bg-white/10 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-emerald-400"
-                style={{ width: `${Math.round(swipeProgress * 100)}%` }}
-              />
-            </div>
+          <div className="mt-3 text-base font-extrabold tracking-wide text-white">
+            {waiterName}
           </div>
         </Card>
       </div>
