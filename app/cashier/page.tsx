@@ -2,7 +2,7 @@
 // @/app/cashier/page.tsx
 
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { API_BASE, CASHIER_USER_ID } from "@/lib/config";
 import { money } from "@/lib/money";
 import { useWaiters } from "@/hooks/useWaiter";
@@ -35,6 +35,10 @@ export default function CashierPage() {
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [voidingOrderId, setVoidingOrderId] = useState<string | null>(null);
 
+  const [servingMode, setServingMode] = useState<"individual" | "shared_tray">(
+    "individual"
+  );
+
   const {
     waiters,
     loading: waitersLoading,
@@ -66,14 +70,10 @@ export default function CashierPage() {
   const loadError = menuError || waitersError;
   const loading = menuLoading || waitersLoading;
 
-  useEffect(() => {
-    if (!waiterId && waiters.length > 0) {
-      setWaiterId(waiters[0].id);
-    }
-  }, [waiters, waiterId]);
+  const selectedWaiterId = waiterId ?? waiters[0]?.id ?? null;
 
   async function submitOrder() {
-    if (!waiterId) {
+    if (!selectedWaiterId) {
       alert("Pick a waiter first.");
       return;
     }
@@ -89,8 +89,9 @@ export default function CashierPage() {
 
     try {
       const payload = {
-        waiter_id: waiterId,
+        waiter_id: selectedWaiterId,
         created_by: CASHIER_USER_ID,
+        serving_mode: servingMode,
         items: cart.map((c) => ({
           menu_item_id: c.menu_item_id,
           quantity: c.quantity,
@@ -111,6 +112,7 @@ export default function CashierPage() {
       }
 
       clearCart();
+      setServingMode("individual");
       await fetchActiveOrders();
     } catch (e: any) {
       alert(e?.message || "Failed to submit order");
@@ -399,10 +401,11 @@ export default function CashierPage() {
                     <div className="mb-2 text-sm font-semibold text-white/75">
                       Waiter
                     </div>
+
                     <ScrollArea className="w-full whitespace-nowrap">
                       <div className="flex gap-2 pb-2">
                         {waiters.map((w) => {
-                          const active = waiterId === w.id;
+                          const active = selectedWaiterId === w.id;
 
                           return (
                             <Button
@@ -424,6 +427,42 @@ export default function CashierPage() {
                       </div>
                     </ScrollArea>
                   </div>
+
+                  <div className="mt-3">
+                    <div className="mb-2 text-sm font-semibold text-white/75">
+                      Serving Style
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={() => setServingMode("individual")}
+                        className={[
+                          "h-11 rounded-full border px-4",
+                          servingMode === "individual"
+                            ? "border-teal-400 bg-teal-500 text-slate-950 hover:bg-teal-400"
+                            : "border-white/10 bg-slate-800/70 text-white hover:bg-slate-700 hover:border-teal-400/50",
+                        ].join(" ")}
+                      >
+                        የተለያዩ ትእዛዞች
+                      </Button>
+
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={() => setServingMode("shared_tray")}
+                        className={[
+                          "h-11 rounded-full border px-4",
+                          servingMode === "shared_tray"
+                            ? "border-teal-400 bg-teal-500 text-slate-950 hover:bg-teal-400"
+                            : "border-white/10 bg-slate-800/70 text-white hover:bg-slate-700 hover:border-teal-400/50",
+                        ].join(" ")}
+                      >
+                        አንድ ላይ
+                      </Button>
+                    </div>
+                  </div>
                 </div>
 
                 <Button
@@ -439,7 +478,7 @@ export default function CashierPage() {
               <Separator className="my-3 bg-white/10" />
 
               {/* Cart items */}
-              <div className="grid min-h-0 flex-1 gap-3 2xl:grid-cols-[1fr_300px]">
+              <div className="flex min-h-0 flex-1 flex-col gap-3 2xl:grid 2xl:grid-cols-[1fr_300px]">
                 <div className="min-h-0 flex-1 overflow-hidden">
                   <ScrollArea className="h-full pr-2">
                     {cart.length === 0 ? (
@@ -509,7 +548,7 @@ export default function CashierPage() {
                 </div>
 
                 {/* Summary */}
-                <Card className="flex flex-col gap-3 border-white/10 bg-white/5 hover:bg-white/8 p-3 sticky bottom-0 h-full">
+                <Card className="mt-auto flex flex-col gap-3 border-white/10 bg-white/5 hover:bg-white/8 p-3 2xl:mt-0 2xl:h-full">
                   <div className="flex-1">
                     <div className="rounded-xl border border-white/10 bg-slate-900/30 p-3">
                       <div className="flex items-center justify-between text-sm">
@@ -531,7 +570,7 @@ export default function CashierPage() {
 
                     <Button
                       onClick={submitOrder}
-                      disabled={cart.length === 0 || submitting || !waiterId}
+                      disabled={cart.length === 0 || submitting || !selectedWaiterId}
                       className="h-14 w-full text-base font-extrabold text-slate-950 bg-amber-400 hover:bg-amber-300"
                     >
                       {submitting ? "Sending..." : "ወደ ኩሽና ይላኩ"}

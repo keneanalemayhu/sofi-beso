@@ -58,10 +58,9 @@ export default function KitchenPage() {
                 {orders.map((o) => (
                   <OrderRow
                     key={o.order.id}
-                    orderId={o.order.id}
-                    orderNumber={o.order.order_number}
                     status={o.order.status}
                     createdAt={o.order.created_at}
+                    waiterName={o.order.waiter_name ?? "Unknown waiter"}
                     items={o.items.map((i) => ({
                       name: i.name,
                       qty: i.quantity,
@@ -80,21 +79,18 @@ export default function KitchenPage() {
 }
 
 function OrderRow({
-  orderId,
-  orderNumber,
   status,
   createdAt,
+  waiterName,
   items,
   onComplete,
 }: {
-  orderId: string;
-  orderNumber?: number;
   status: string;
   createdAt: string;
+  waiterName: string;
   items: { name: string; qty: number; comment: string }[];
   onComplete: () => void;
 }) {
-  // simple visible swipe
   const [dx, setDx] = useState(0);
   const threshold = 120;
 
@@ -139,9 +135,9 @@ function OrderRow({
         <Card className="p-3 bg-slate-900/70 border-white/10 rounded-xl">
           {/* Row header */}
           <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className="font-extrabold text-white">
-                Order {orderNumber ?? orderId.slice(0, 6)}
+            <div className="min-w-0 flex-1">
+              <div className="font-extrabold text-white truncate">
+                {items.map((it) => `${it.name} x${it.qty}`).join(" • ")}
               </div>
               <div className="text-xs text-white/60">{minutes} min ago</div>
             </div>
@@ -176,7 +172,9 @@ function OrderRow({
 
           {/* Visible swipe hint + progress */}
           <div className="mt-3 flex items-center justify-between">
-            <div className="text-xs text-white/60">Swipe right to complete</div>
+            <div className="text-xs text-white/70">
+              Waiter: <span className="font-semibold text-white">{waiterName}</span>
+            </div>
             <div className="h-2 w-40 bg-white/10 rounded-full overflow-hidden">
               <div
                 className="h-full bg-emerald-400"

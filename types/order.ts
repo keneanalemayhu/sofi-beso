@@ -3,6 +3,7 @@
 export type OrderStatus = "pending" | "completed" | "voided";
 
 export type Order = {
+  waiter_name: string;
   id: string;
   order_number?: number;
   waiter_id: string | null;
