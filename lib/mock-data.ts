@@ -54,7 +54,8 @@ export const mockOrders: OrderWithItems[] = [
       status: "pending",
       created_at: new Date(Date.now() - 1000 * 60 * 8).toISOString(),
       total_amount: 12.5,
-      created_by: ""
+      created_by: "",
+      waiter_name: ""
     },
     items: [
       {
@@ -80,8 +81,8 @@ export const mockOrders: OrderWithItems[] = [
       status: "pending",
       created_at: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
       total_amount: 18.25,
-      created_by: ""
-
+      created_by: "",
+      waiter_name: ""
     },
     items: [
       {
@@ -113,8 +114,8 @@ export const mockOrders: OrderWithItems[] = [
       status: "completed",
       created_at: new Date(Date.now() - 1000 * 60 * 3).toISOString(),
       total_amount: 7.5,
-      created_by: ""
-
+      created_by: "",
+      waiter_name: ""
     },
     items: [
       {
@@ -134,8 +135,8 @@ export const mockOrders: OrderWithItems[] = [
       status: "pending",
       created_at: new Date(Date.now() - 1000 * 60 * 2).toISOString(),
       total_amount: 9.25,
-      created_by: ""
-
+      created_by: "",
+      waiter_name: ""
     },
     items: [
       {
