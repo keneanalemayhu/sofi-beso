@@ -1,9 +1,10 @@
 // @/types/order.ts
 
 export type OrderStatus = "pending" | "completed" | "voided";
+export type ServingMode = "individual" | "shared_tray";
 
 export type Order = {
-  serving_mode: string;
+  serving_mode: ServingMode;
   waiter_name: string;
   id: string;
   order_number?: number;
@@ -22,7 +23,7 @@ export type OrderItem = {
   quantity: number;
   price_at_time: string | number;
   comment?: string | null;
-  name: string; // from JOIN in /orders/:id
+  name: string;
 };
 
 export type ActiveOrderItem = {
@@ -37,11 +38,12 @@ export type ActiveOrderItem = {
 
 export type ActiveOrder = {
   order: {
+    serving_mode: ServingMode;
     waiter_name: string;
     id: string;
     waiter_id: string | null;
     created_by: string;
-    status: "pending" | "completed" | "voided";
+    status: OrderStatus;
     total_amount: number;
     created_at: string;
     completed_at: string | null;
