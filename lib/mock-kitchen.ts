@@ -14,7 +14,8 @@ export const mockKitchenOrders: OrderWithItems[] = [
       total_amount: 18.25,
       created_at: minutesAgo(8),
       completed_at: null,
-      waiter_name: ""
+      waiter_name: "",
+      serving_mode: "individual"
     },
     items: [
       { id: "oi-1", order_id: "o-1", menu_item_id: "m-burger", quantity: 1, price_at_time: 9.99, comment: "No onions", name: "Classic Burger" },
@@ -31,7 +32,8 @@ export const mockKitchenOrders: OrderWithItems[] = [
       total_amount: 11.0,
       created_at: minutesAgo(5),
       completed_at: null,
-      waiter_name: ""
+      waiter_name: "",
+      serving_mode: "individual"
     },
     items: [
       { id: "oi-3", order_id: "o-2", menu_item_id: "m-omelette", quantity: 1, price_at_time: 6.75, comment: "Extra cheese", name: "Cheese Omelette" },
@@ -49,7 +51,8 @@ export const mockKitchenOrders: OrderWithItems[] = [
       total_amount: 7.5,
       created_at: minutesAgo(2),
       completed_at: null,
-      waiter_name: ""
+      waiter_name: "",
+      serving_mode: "individual"
     },
     items: [
       { id: "oi-6", order_id: "o-3", menu_item_id: "m-pancakes", quantity: 1, price_at_time: 7.5, comment: "No syrup", name: "Pancakes (3)" },
