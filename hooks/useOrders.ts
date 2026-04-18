@@ -26,12 +26,14 @@ export function useOrders() {
 
             if (!API_BASE) throw new Error("Missing NEXT_PUBLIC_API_URL");
 
-            const res = await fetch(`${API_BASE}/orders/active-with-items`, {
+            const res = await fetch(`${API_BASE}/orders/with-items`, {
                 cache: "no-store",
             });
 
             const data = await res.json().catch(() => []);
-            if (!res.ok) throw new Error((data as any)?.error || `Orders fetch failed (${res.status})`);
+            if (!res.ok) {
+                throw new Error((data as any)?.error || `Orders fetch failed (${res.status})`);
+            }
 
             setOrders(Array.isArray(data) ? data : []);
         } catch (e: any) {
@@ -42,7 +44,47 @@ export function useOrders() {
     }
 
     useEffect(() => {
-        fetchOrders();
+        let cancelled = false;
+
+        const loadInitialOrders = async () => {
+            try {
+                setError(null);
+
+                if (USE_MOCK) {
+                    if (!cancelled) setOrders(mockOrders);
+                    return;
+                }
+
+                if (!API_BASE) throw new Error("Missing NEXT_PUBLIC_API_URL");
+
+                const res = await fetch(`${API_BASE}/orders/with-items`, {
+                    cache: "no-store",
+                });
+
+                const data = await res.json().catch(() => []);
+                if (!res.ok) {
+                    throw new Error((data as any)?.error || `Orders fetch failed (${res.status})`);
+                }
+
+                if (!cancelled) {
+                    setOrders(Array.isArray(data) ? data : []);
+                }
+            } catch (e: any) {
+                if (!cancelled) {
+                    setError(e?.message || "Failed to load orders");
+                }
+            } finally {
+                if (!cancelled) {
+                    setLoading(false);
+                }
+            }
+        };
+
+        void loadInitialOrders();
+
+        return () => {
+            cancelled = true;
+        };
     }, []);
 
     const totalsByWaiter = useMemo(() => {
