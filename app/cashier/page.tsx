@@ -257,17 +257,14 @@ export default function CashierPage() {
                             >
                               <div className="flex items-start justify-between gap-3">
                                 <div className="min-w-0">
-                                  <div className="font-semibold text-white">
-                                    Order #{order.id.slice(0, 8)}
+                                  <div className="font-semibold text-white truncate">
+                                    {items.map(i => `${i.name} x${i.quantity}`).join(" • ")}
                                   </div>
                                   <div className="mt-1 text-xs text-white/60">
                                     {new Date(order.created_at).toLocaleString()}
                                   </div>
                                   <div className="text-xs text-white/60">
-                                    Waiter:{" "}
-                                    {order.waiter_id
-                                      ? waiterNameById.get(order.waiter_id) || "Unknown"
-                                      : "N/A"}
+                                    Waiter: {order.waiter_name ?? "Unknown"}
                                   </div>
                                 </div>
 

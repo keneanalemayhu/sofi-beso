@@ -36,6 +36,7 @@ export type ActiveOrderItem = {
 
 export type ActiveOrder = {
   order: {
+    waiter_name: string;
     id: string;
     waiter_id: string | null;
     created_by: string;
