@@ -55,7 +55,8 @@ export const mockOrders: OrderWithItems[] = [
       created_at: new Date(Date.now() - 1000 * 60 * 8).toISOString(),
       total_amount: 12.5,
       created_by: "",
-      waiter_name: ""
+      waiter_name: "",
+      serving_mode: "individual"
     },
     items: [
       {
@@ -82,7 +83,8 @@ export const mockOrders: OrderWithItems[] = [
       created_at: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
       total_amount: 18.25,
       created_by: "",
-      waiter_name: ""
+      waiter_name: "",
+      serving_mode: "individual"
     },
     items: [
       {
@@ -115,7 +117,8 @@ export const mockOrders: OrderWithItems[] = [
       created_at: new Date(Date.now() - 1000 * 60 * 3).toISOString(),
       total_amount: 7.5,
       created_by: "",
-      waiter_name: ""
+      waiter_name: "",
+      serving_mode: "individual"
     },
     items: [
       {
@@ -136,7 +139,8 @@ export const mockOrders: OrderWithItems[] = [
       created_at: new Date(Date.now() - 1000 * 60 * 2).toISOString(),
       total_amount: 9.25,
       created_by: "",
-      waiter_name: ""
+      waiter_name: "",
+      serving_mode: "individual"
     },
     items: [
       {
