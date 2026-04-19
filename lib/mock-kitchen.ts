@@ -14,7 +14,7 @@ export const mockKitchenOrders: OrderWithItems[] = [
       total_amount: 18.25,
       created_at: minutesAgo(8),
       completed_at: null,
-      waiter_name: "",
+      waiter_name: "eyerus",
       serving_mode: "individual"
     },
     items: [
@@ -32,7 +32,7 @@ export const mockKitchenOrders: OrderWithItems[] = [
       total_amount: 11.0,
       created_at: minutesAgo(5),
       completed_at: null,
-      waiter_name: "",
+      waiter_name: "jemal",
       serving_mode: "individual"
     },
     items: [
@@ -47,11 +47,11 @@ export const mockKitchenOrders: OrderWithItems[] = [
       order_number: 103,
       waiter_id: "w-3",
       created_by: "cashier",
-      status: "pending",
+      status: "completed",
       total_amount: 7.5,
       created_at: minutesAgo(2),
       completed_at: null,
-      waiter_name: "",
+      waiter_name: "gadise",
       serving_mode: "individual"
     },
     items: [

@@ -1,3 +1,5 @@
+// @/types/waiter.ts
+
 export type Waiter = {
   id: string;
   name: string;

@@ -4,7 +4,6 @@
 "use client";
 import { useMemo, useState } from "react";
 import { useSwipeable } from "react-swipeable";
-
 import { useKitchenOrders } from "@/hooks/useKitchenOrders";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -21,25 +20,59 @@ function statusBadge(status: string) {
 
 export default function KitchenPage() {
   const { orders, loading, error, counts, setStatus, refresh } = useKitchenOrders();
+  const [showCompleted, setShowCompleted] = useState(false);
+
+  const visibleOrders = useMemo(() => {
+    return orders.filter((o) => {
+      const status = String(o.order.status || "").toLowerCase();
+
+      if (showCompleted) return status === "completed";
+      return status !== "completed";
+    });
+  }, [orders, showCompleted]);
+
+  const activeCount = counts.pending + counts.preparing + counts.ready;
+  const completedCount = orders.filter(
+    (o) => String(o.order.status || "").toLowerCase() === "completed"
+  ).length;
 
   return (
     <div className="h-screen flex flex-col overflow-hidden bg-slate-950 text-white">
       {/* Header */}
-      <div className="px-4 py-3 border-b border-white/10 bg-slate-950 flex items-center justify-between gap-3">
-        <div className="flex flex-col">
-          <div className="text-lg font-extrabold tracking-tight">Kitchen</div>
-          <div className="text-xs text-white/70">Swipe right or tap Done</div>
-        </div>
+      <div className="border-b border-white/10 bg-slate-950 px-3 py-3 sm:px-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <div className="text-lg font-extrabold tracking-tight">ኩሽና</div>
+            <div className="text-xs text-white/70">
+              Swipe right or tap Done
+            </div>
+          </div>
 
-        <div className="flex items-center gap-2">
-          <Badge className="bg-amber-400 text-slate-950">Active {counts.pending + counts.preparing + counts.ready}</Badge>
-          <Button
-            variant="secondary"
-            className="bg-slate-800/70 border border-white/10 text-white hover:bg-slate-800"
-            onClick={() => refresh()}
-          >
-            Refresh
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge className="bg-amber-400 text-slate-950">
+              ያልተሰሩ {activeCount}
+            </Badge>
+
+            <Badge className="bg-emerald-400 text-slate-950">
+              የወጡ {completedCount}
+            </Badge>
+
+            <Button
+              variant="secondary"
+              className="h-9 border border-white/10 bg-slate-800/70 px-3 text-white hover:bg-slate-800"
+              onClick={() => setShowCompleted((v) => !v)}
+            >
+              {showCompleted ? "ያልተሰሩ ምግቦች" : "የወጡ ምግቦች"}
+            </Button>
+
+            <Button
+              variant="secondary"
+              className="h-9 border border-white/10 bg-slate-800/70 px-3 text-white hover:bg-slate-800"
+              onClick={() => refresh()}
+            >
+              Refresh
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -50,12 +83,14 @@ export default function KitchenPage() {
             <div className="text-sm text-white/70">Loading orders…</div>
           ) : error ? (
             <div className="text-sm text-red-300">{error}</div>
-          ) : orders.length === 0 ? (
-            <div className="text-sm text-white/70">No active orders.</div>
+          ) : visibleOrders.length === 0 ? (
+            <div className="text-sm text-white/70">
+              {showCompleted ? "No orders found." : "No active orders."}
+            </div>
           ) : (
-            <ScrollArea className="h-full pr-2">
+            <ScrollArea className="h-full pr-1 sm:pr-2">
               <div className="flex flex-col gap-3">
-                {orders.map((o) => (
+                {visibleOrders.map((o) => (
                   <OrderRow
                     key={o.order.id}
                     status={o.order.status}
@@ -104,7 +139,7 @@ function OrderRow({
       setDx(next);
     },
     onSwipedRight: () => {
-      if (dx >= threshold) onComplete();
+      if (status !== "completed" && dx >= threshold) onComplete();
       setDx(0);
     },
     onSwiped: () => setDx(0),
@@ -120,64 +155,71 @@ function OrderRow({
 
   return (
     <div className="relative">
-      {/* Background "Done" layer revealed on swipe */}
-      <div className="absolute inset-0 rounded-xl bg-emerald-500/20 border border-emerald-400/25 flex items-center justify-end pr-4">
+      <div className="absolute inset-0 flex items-center justify-end rounded-xl border border-emerald-400/25 bg-emerald-500/20 pr-4">
         <div className="flex items-center gap-3">
-          <div className="text-xs text-white/80 hidden sm:block">Swipe →</div>
+          <div className="hidden text-xs text-white/80 sm:block">Swipe →</div>
           <div className="font-extrabold text-emerald-200">DONE</div>
         </div>
       </div>
 
-      {/* Foreground row that moves */}
       <div
         {...swipe}
         style={{ transform: `translateX(${dx}px)` }}
         className="relative will-change-transform transition-transform duration-150"
       >
-        <Card className="p-3 bg-slate-900/70 border-white/10 rounded-xl">
-          {/* Row header */}
-          <div className="flex items-center justify-between gap-3">
-            <div className="min-w-0 flex-1">
-              <div className="font-extrabold text-white truncate">
-                {items.map((it) => `${it.name} x${it.qty}`).join(" • ")}
-              </div>
-              <div className="text-xs text-white/60">{minutes} min ago</div>
-              <div className="mt-1 text-xs font-bold text-amber-200">
-                {servingMode === "shared_tray" ? "አንድ ላይ" : "የተለያዩ ትእዛዞች"}
-              </div>
-            </div>
+        <Card className="rounded-xl border-white/10 bg-slate-900/70 p-3">
 
-            <div className="flex items-center gap-2">
-              <Badge className={statusBadge(status)}>{status.toUpperCase()}</Badge>
-              <Button
-                className="bg-emerald-400 text-slate-950 hover:bg-emerald-300 h-10 px-4 font-extrabold"
-                onClick={onComplete}
-              >
-                Done
-              </Button>
-            </div>
-          </div>
-
-          <Separator className="my-3 bg-white/10" />
-
-          {/* Items in a single horizontal line (wrap if too long) */}
           <div className="flex flex-col gap-2">
             {items.map((it, idx) => (
-              <div key={idx} className="text-sm">
-                <div className="font-extrabold text-white leading-tight">
-                  {it.name} <span className="text-white/70 font-bold">x {it.qty}</span>
+              <div key={idx}>
+                <div className="text-lg font-extrabold text-white leading-tight">
+                  {it.name}{" "}
+                  <span className="text-white/70 font-bold">× {it.qty}</span>
                 </div>
 
                 {it.comment ? (
-                  <div className="text-xs text-amber-200/90 mt-0.5">{it.comment}</div>
+                  <div className="text-sm text-amber-200/90 mt-0.5 break-words">
+                    {it.comment}
+                  </div>
                 ) : null}
               </div>
             ))}
           </div>
 
-          {/* Visible swipe hint + progress */}
-          <div className="mt-3 text-base font-extrabold tracking-wide text-white">
-            {waiterName}
+          <Separator className="my-3 bg-white/10" />
+
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-2 text-xs">
+
+              {/* ⏱ time (still subtle) */}
+              <div className="text-white/50">{minutes} min ago</div>
+
+              {/* 🍽 serving mode (PROMINENT) */}
+              <div className="inline-flex w-fit items-center rounded-lg border border-amber-300/40 bg-amber-400/10 px-3 py-1 text-sm font-extrabold text-amber-200">
+                {servingMode === "shared_tray" ? "አንድ ላይ" : "የተለያዩ ትእዛዞች"}
+              </div>
+
+              {/* 👤 waiter (boxed + strong) */}
+              <div className="inline-flex w-fit items-center rounded-lg border border-white/20 bg-white/5 px-3 py-1 text-sm font-extrabold text-white">
+                {waiterName}
+              </div>
+
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+              <Badge className={statusBadge(status)}>
+                {status.toUpperCase()}
+              </Badge>
+
+              {status !== "completed" ? (
+                <Button
+                  className="h-10 px-4 font-extrabold bg-emerald-400 text-slate-950 hover:bg-emerald-300"
+                  onClick={onComplete}
+                >
+                  አልቆአል
+                </Button>
+              ) : null}
+            </div>
           </div>
         </Card>
       </div>

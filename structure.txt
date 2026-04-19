@@ -1,0 +1,63 @@
+sofi-beso/
+├── app/
+│   ├── admin/
+│   │   ├── category/
+│   │   │   └── page.tsx
+│   │   ├── dashboard/
+│   │   │   └── page.tsx
+│   │   ├── items/
+│   │   │   └── page.tsx
+│   │   └── waiter/
+│   │       └── page.tsx
+│   ├── cashier/
+│   │   ├── layout.tsx
+│   │   └── page.tsx
+│   ├── kitchen/
+│   │   ├── layout.tsx
+│   │   └── page.tsx
+│   ├── orders/
+│   │   ├── layout.tsx
+│   │   └── page.tsx
+│   ├── favicon.ico
+│   ├── globals.css
+│   ├── layout.tsx
+│   └── page.tsx
+├── components/
+│   └── ui/
+│       ├── badge.tsx
+│       ├── button.tsx
+│       ├── card.tsx
+│       ├── dialog.tsx
+│       ├── input.tsx
+│       ├── scroll-area.tsx
+│       ├── select.tsx
+│       └── separator.tsx
+├── hooks/
+│   ├── useCart.ts
+│   ├── useKitchenOrders.ts
+│   ├── useMenu.ts
+│   ├── useOrders.ts
+│   └── useWaiter.ts
+├── lib/
+│   ├── config.ts
+│   ├── mock-data.ts
+│   ├── mock-kitchen.ts
+│   ├── money.ts
+│   └── utils.ts
+├── types/
+│   ├── cart.ts
+│   ├── category.ts
+│   ├── index.ts
+│   ├── menu.ts
+│   ├── order.ts
+│   └── waiter.ts
+├── .env.local
+├── .gitignore
+├── components.json
+├── eslint.config.mjs
+├── next-env.d.ts
+├── next.config.ts
+├── package.json
+├── postcss.config.mjs
+├── README.md
+└── tsconfig.json

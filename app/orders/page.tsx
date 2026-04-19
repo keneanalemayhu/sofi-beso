@@ -1,7 +1,7 @@
 // @/app/orders/page.tsx
 
 "use client";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { money } from "@/lib/money";
 import { useWaiters } from "@/hooks/useWaiter";
 import { Card } from "@/components/ui/card";
@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { useOrders } from "@/hooks/useOrders";
+import { ChevronDown, ChevronRight } from "lucide-react";
 
 type GroupedOrders = {
   waiterId: string;
@@ -181,6 +182,136 @@ function OrdersSection({
   totalColor: string;
   badgeClassName: string;
 }) {
+
+    const isCompletedSection = title.toLowerCase().includes("completed");
+
+  function OrderCard({
+    order,
+    items,
+    defaultOpen,
+  }: {
+    order: {
+      id: string;
+      created_at: string;
+      completed_at?: string | null;
+      total_amount: number | string;
+      status?: string;
+    };
+    items: {
+      id: string;
+      quantity: number;
+      name: string;
+      comment?: string | null;
+      price_at_time?: number | string;
+    }[];
+    defaultOpen: boolean;
+  }) {
+    const [open, setOpen] = useState(defaultOpen);
+
+    const itemCount = items.reduce(
+      (sum, item) => sum + Number(item.quantity || 0),
+      0
+    );
+
+    return (
+      <Card className="border-white/10 bg-white/6 p-3">
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          className="flex w-full items-start justify-between gap-3 text-left"
+        >
+          <div className="flex items-start gap-3">
+            <div className="mt-0.5 text-white/70">
+              {open ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+            </div>
+
+            <div>
+              <div className="font-semibold text-white">
+                Order #{order.id.slice(0, 8)}
+              </div>
+
+              <div className="mt-1 text-xs text-white/60">
+                Created: {new Date(order.created_at).toLocaleString()}
+              </div>
+
+              {order.completed_at ? (
+                <div className="text-xs text-white/60">
+                  Completed: {new Date(order.completed_at).toLocaleString()}
+                </div>
+              ) : null}
+
+              <div className="mt-2 flex flex-wrap gap-2">
+                <Badge
+                  variant="outline"
+                  className="border-white/20 text-white/80"
+                >
+                  {order.status || "unknown"}
+                </Badge>
+
+                <Badge
+                  variant="outline"
+                  className="border-white/20 text-white/80"
+                >
+                  {itemCount} items
+                </Badge>
+              </div>
+            </div>
+          </div>
+
+          <div className="text-right">
+            <div className="font-extrabold tabular-nums text-white">
+              {money(Number(order.total_amount))}
+            </div>
+            <div className="mt-1 text-xs text-white/50">
+              {open ? "Hide details" : "Show details"}
+            </div>
+          </div>
+        </button>
+
+        {open ? (
+          <>
+            <Separator className="my-3 bg-white/10" />
+
+            <div className="flex flex-col gap-2">
+              {items.map((item) => {
+                const price = Number(item.price_at_time || 0);
+                const qty = Number(item.quantity || 0);
+                const subtotal = price * qty;
+
+                return (
+                  <div
+                    key={item.id}
+                    className="rounded-xl border border-white/10 bg-slate-900/30 p-3"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="font-medium text-white">{item.name}</div>
+
+                        <div className="text-xs text-white/60">
+                          Qty: {qty}
+                          {price > 0 ? ` • ${money(price)} each` : ""}
+                        </div>
+
+                        {item.comment ? (
+                          <div className="mt-1 text-xs text-amber-200">
+                            Note: {item.comment}
+                          </div>
+                        ) : null}
+                      </div>
+
+                      <div className="text-sm font-bold tabular-nums text-white">
+                        {subtotal > 0 ? money(subtotal) : `${qty}×`}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        ) : null}
+      </Card>
+    );
+  }
   return (
     <Card className="flex min-h-0 flex-col border-white/10 bg-white/5 p-4 backdrop-blur">
       <div className="flex items-center justify-between gap-3">
@@ -234,88 +365,12 @@ function OrdersSection({
 
                   <div className="flex flex-col gap-3">
                     {group.orders.map(({ order, items }) => (
-                      <Card
+                      <OrderCard
                         key={order.id}
-                        className="border-white/10 bg-white/6 p-3"
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <div className="font-semibold text-white">
-                              Order #{order.id.slice(0, 8)}
-                            </div>
-                            <div className="mt-1 text-xs text-white/60">
-                              Created: {new Date(order.created_at).toLocaleString()}
-                            </div>
-
-                            {order.completed_at ? (
-                              <div className="text-xs text-white/60">
-                                Completed: {new Date(order.completed_at).toLocaleString()}
-                              </div>
-                            ) : null}
-
-                            <div className="mt-2 flex flex-wrap gap-2">
-                              <Badge
-                                variant="outline"
-                                className="border-white/20 text-white/80"
-                              >
-                                {order.status || "unknown"}
-                              </Badge>
-
-                              <Badge
-                                variant="outline"
-                                className="border-white/20 text-white/80"
-                              >
-                                {items.reduce((sum, item) => sum + Number(item.quantity || 0), 0)} items
-                              </Badge>
-                            </div>
-                          </div>
-
-                          <div className="text-right">
-                            <div className="font-extrabold tabular-nums text-white">
-                              {money(Number(order.total_amount))}
-                            </div>
-                          </div>
-                        </div>
-
-                        <Separator className="my-3 bg-white/10" />
-
-                        <div className="flex flex-col gap-2">
-                          {items.map((item) => {
-                            const price = Number(item.price_at_time || 0);
-                            const qty = Number(item.quantity || 0);
-                            const subtotal = price * qty;
-
-                            return (
-                              <div
-                                key={item.id}
-                                className="rounded-xl border border-white/10 bg-slate-900/30 p-3"
-                              >
-                                <div className="flex items-start justify-between gap-3">
-                                  <div>
-                                    <div className="font-medium text-white">
-                                      {item.name}
-                                    </div>
-                                    <div className="text-xs text-white/60">
-                                      Qty: {qty}
-                                      {price > 0 ? ` • ${money(price)} each` : ""}
-                                    </div>
-
-                                    {item.comment ? (
-                                      <div className="mt-1 text-xs text-amber-200">
-                                        Note: {item.comment}
-                                      </div>
-                                    ) : null}
-                                  </div>
-
-                                  <div className="text-sm font-bold tabular-nums text-white">
-                                    {subtotal > 0 ? money(subtotal) : `${qty}×`}
-                                  </div>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </Card>
+                        order={order}
+                        items={items}
+                        defaultOpen={!isCompletedSection}
+                      />
                     ))}
                   </div>
                 </Card>
