@@ -27,12 +27,20 @@ export default function KitchenPage() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const visibleOrders = useMemo(() => {
-    return orders.filter((o) => {
-      const status = String(o.order.status || "").toLowerCase();
+    return orders
+      .filter((o) => isToday(o.order.created_at))
+      .filter((o) => {
+        const status = String(o.order.status || "").toLowerCase();
 
-      if (showCompleted) return status === "completed";
-      return status !== "completed";
-    });
+        if (showCompleted) return status === "completed";
+        return status !== "completed";
+      })
+      .sort((a, b) => {
+        return (
+          new Date(b.order.created_at).getTime() -
+          new Date(a.order.created_at).getTime()
+        );
+      });
   }, [orders, showCompleted]);
 
   const activeCount = counts.pending + counts.preparing + counts.ready;
@@ -78,6 +86,19 @@ export default function KitchenPage() {
 
     return () => window.removeEventListener("click", unlock);
   }, []);
+
+  const isToday = (value?: string | null) => {
+    if (!value) return false;
+
+    const d = new Date(value);
+    const now = new Date();
+
+    return (
+      d.getFullYear() === now.getFullYear() &&
+      d.getMonth() === now.getMonth() &&
+      d.getDate() === now.getDate()
+    );
+  };
 
   return (
     <div className="h-screen flex flex-col overflow-hidden bg-slate-950 text-white">
