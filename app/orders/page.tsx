@@ -11,6 +11,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { useOrders } from "@/hooks/useOrders";
 import { ChevronDown, ChevronRight } from "lucide-react";
+import Header from "@/components/common/Header";
+import { useCalendar } from "@/hooks/useCalendar";
 
 type GroupedOrders = {
   waiterId: string;
@@ -20,58 +22,66 @@ type GroupedOrders = {
 };
 
 export default function WaiterOrdersPage() {
-  const { waiters, loading: waitersLoading, error: waitersError } = useWaiters();
+  const {
+    waiters,
+    loading: waitersLoading,
+    error: waitersError,
+  } = useWaiters();
   const { orders, loading, error, refresh } = useOrders();
 
   const waiterNameById = useMemo(
     () => new Map(waiters.map((w) => [w.id, w.name])),
-    [waiters]
+    [waiters],
   );
 
-  const { pendingGroups, completedGroups, pendingTotal, completedTotal } = useMemo(() => {
-    const pendingMap = new Map<string, GroupedOrders>();
-    const completedMap = new Map<string, GroupedOrders>();
+  const { pendingGroups, completedGroups, pendingTotal, completedTotal } =
+    useMemo(() => {
+      const pendingMap = new Map<string, GroupedOrders>();
+      const completedMap = new Map<string, GroupedOrders>();
 
-    for (const row of orders) {
-      const waiterId = row.order.waiter_id || "unknown";
-      const waiterName = row.order.waiter_id
-        ? waiterNameById.get(row.order.waiter_id) || "Unknown"
-        : "No waiter";
+      for (const row of orders) {
+        const waiterId = row.order.waiter_id || "unknown";
+        const waiterName = row.order.waiter_id
+          ? waiterNameById.get(row.order.waiter_id) || "Unknown"
+          : "No waiter";
 
-      const status = String(row.order.status || "").toLowerCase();
-      const isCompleted = status === "completed";
-      const targetMap = isCompleted ? completedMap : pendingMap;
+        const status = String(row.order.status || "").toLowerCase();
+        const isCompleted = status === "completed";
+        const targetMap = isCompleted ? completedMap : pendingMap;
 
-      if (!targetMap.has(waiterId)) {
-        targetMap.set(waiterId, {
-          waiterId,
-          waiterName,
-          total: 0,
-          orders: [],
-        });
+        if (!targetMap.has(waiterId)) {
+          targetMap.set(waiterId, {
+            waiterId,
+            waiterName,
+            total: 0,
+            orders: [],
+          });
+        }
+
+        const current = targetMap.get(waiterId)!;
+        current.orders.push(row);
+        current.total += Number(row.order.total_amount || 0);
       }
 
-      const current = targetMap.get(waiterId)!;
-      current.orders.push(row);
-      current.total += Number(row.order.total_amount || 0);
-    }
+      const sortGroups = (groups: GroupedOrders[]) =>
+        groups.sort((a, b) => b.total - a.total);
 
-    const sortGroups = (groups: GroupedOrders[]) =>
-      groups.sort((a, b) => b.total - a.total);
+      const pendingGroups = sortGroups(Array.from(pendingMap.values()));
+      const completedGroups = sortGroups(Array.from(completedMap.values()));
 
-    const pendingGroups = sortGroups(Array.from(pendingMap.values()));
-    const completedGroups = sortGroups(Array.from(completedMap.values()));
+      const pendingTotal = pendingGroups.reduce((sum, g) => sum + g.total, 0);
+      const completedTotal = completedGroups.reduce(
+        (sum, g) => sum + g.total,
+        0,
+      );
 
-    const pendingTotal = pendingGroups.reduce((sum, g) => sum + g.total, 0);
-    const completedTotal = completedGroups.reduce((sum, g) => sum + g.total, 0);
-
-    return {
-      pendingGroups,
-      completedGroups,
-      pendingTotal,
-      completedTotal,
-    };
-  }, [orders, waiterNameById]);
+      return {
+        pendingGroups,
+        completedGroups,
+        pendingTotal,
+        completedTotal,
+      };
+    }, [orders, waiterNameById]);
 
   if (loading || waitersLoading) {
     return (
@@ -93,13 +103,17 @@ export default function WaiterOrdersPage() {
     <div className="flex h-screen flex-col overflow-hidden bg-slate-950 text-white">
       <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
         <div>
-          <div className="text-lg font-extrabold tracking-tight">Waiter Orders</div>
+          <div className="text-lg font-extrabold tracking-tight">
+            Waiter Orders
+          </div>
           <div className="text-xs text-white/70">
             Pending and completed orders grouped by waiter
           </div>
         </div>
 
         <div className="flex items-center gap-2">
+          <Header />
+
           <Badge className="bg-amber-400 text-slate-950">
             Pending {money(pendingTotal)}
           </Badge>
@@ -182,8 +196,9 @@ function OrdersSection({
   totalColor: string;
   badgeClassName: string;
 }) {
-
   const isCompletedSection = title.toLowerCase().includes("completed");
+
+  const { formatDateTime } = useCalendar();
 
   function OrderCard({
     order,
@@ -210,7 +225,7 @@ function OrdersSection({
 
     const itemCount = items.reduce(
       (sum, item) => sum + Number(item.quantity || 0),
-      0
+      0,
     );
 
     return (
@@ -222,7 +237,11 @@ function OrdersSection({
         >
           <div className="flex items-start gap-3">
             <div className="mt-0.5 text-white/70">
-              {open ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+              {open ? (
+                <ChevronDown className="h-4 w-4" />
+              ) : (
+                <ChevronRight className="h-4 w-4" />
+              )}
             </div>
 
             <div>
@@ -231,12 +250,12 @@ function OrdersSection({
               </div>
 
               <div className="mt-1 text-xs text-white/60">
-                Created: {new Date(order.created_at).toLocaleString()}
+                Created: {formatDateTime(new Date(order.created_at), { includeTime: true })}
               </div>
 
               {order.completed_at ? (
                 <div className="text-xs text-white/60">
-                  Completed: {new Date(order.completed_at).toLocaleString()}
+                  Completed: {formatDateTime(new Date(order.completed_at), { includeTime: true })}
                 </div>
               ) : null}
 
@@ -285,7 +304,9 @@ function OrdersSection({
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <div className="font-medium text-white">{item.name}</div>
+                        <div className="font-medium text-white">
+                          {item.name}
+                        </div>
 
                         <div className="text-xs text-white/60">
                           Qty: {qty}
@@ -349,7 +370,7 @@ function OrdersSection({
     const totalItems = group.orders.reduce(
       (sum, row) =>
         sum + row.items.reduce((n, item) => n + Number(item.quantity || 0), 0),
-      0
+      0,
     );
 
     return (
@@ -373,8 +394,9 @@ function OrdersSection({
                 {group.waiterName}
               </div>
               <div className="text-xs text-white/60">
-                {group.orders.length} order{group.orders.length !== 1 ? "s" : ""} •{" "}
-                {totalItems} item{totalItems !== 1 ? "s" : ""}
+                {group.orders.length} order
+                {group.orders.length !== 1 ? "s" : ""} • {totalItems} item
+                {totalItems !== 1 ? "s" : ""}
               </div>
             </div>
           </div>

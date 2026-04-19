@@ -7,6 +7,9 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
+import { formatTime } from "@/lib/time";
+import Header from "@/components/common/Header";
+import { useCalendar } from "@/hooks/useCalendar";
 
 function statusBadge(status: string) {
   if (status === "pending") return "bg-amber-400 text-slate-950";
@@ -15,8 +18,11 @@ function statusBadge(status: string) {
 }
 
 export default function KitchenPage() {
-  const { orders, loading, error, counts, setStatus, refresh } = useKitchenOrders();
+  const { orders, loading, error, counts, setStatus, refresh } =
+    useKitchenOrders();
   const [showCompleted, setShowCompleted] = useState(false);
+
+  const { formatDateTime } = useCalendar();
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -31,7 +37,7 @@ export default function KitchenPage() {
 
   const activeCount = counts.pending + counts.preparing + counts.ready;
   const completedCount = orders.filter(
-    (o) => String(o.order.status || "").toLowerCase() === "completed"
+    (o) => String(o.order.status || "").toLowerCase() === "completed",
   ).length;
 
   useEffect(() => {
@@ -43,7 +49,7 @@ export default function KitchenPage() {
 
   useEffect(() => {
     const activeOrders = orders.filter(
-      (o) => String(o.order.status).toLowerCase() !== "completed"
+      (o) => String(o.order.status).toLowerCase() !== "completed",
     );
 
     const currentIds = new Set(activeOrders.map((o) => o.order.id));
@@ -56,7 +62,7 @@ export default function KitchenPage() {
     const hasNew = [...currentIds].some((id) => !prevIdsRef.current.has(id));
 
     if (hasNew) {
-      audioRef.current?.play().catch(() => { });
+      audioRef.current?.play().catch(() => {});
     }
 
     prevIdsRef.current = currentIds;
@@ -64,7 +70,7 @@ export default function KitchenPage() {
 
   useEffect(() => {
     const unlock = () => {
-      audioRef.current?.play().catch(() => { });
+      audioRef.current?.play().catch(() => {});
       window.removeEventListener("click", unlock);
     };
 
@@ -80,12 +86,12 @@ export default function KitchenPage() {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
             <div className="text-lg font-extrabold tracking-tight">ኩሽና</div>
-            <div className="text-xs text-white/70">
-              Swipe right or tap Done
-            </div>
+            <div className="text-xs text-white/70">Swipe right or tap Done</div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center justify-start gap-2 sm:justify-end">
+            <Header />
+
             <Badge className="bg-amber-400 text-slate-950">
               ያልተሰሩ {activeCount}
             </Badge>
@@ -176,11 +182,6 @@ export default function KitchenPage() {
     items: { name: string; qty: number; comment: string }[];
     onComplete: () => void;
   }) {
-    const minutes = useMemo(() => {
-      const m = Math.round((Date.now() - new Date(createdAt).getTime()) / 60000);
-      return Math.max(0, m);
-    }, [createdAt]);
-
     return (
       <Card className="rounded-xl border-white/10 bg-slate-900/70 p-3">
         <div className="flex flex-col gap-2">
@@ -204,7 +205,7 @@ export default function KitchenPage() {
 
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-col gap-2 text-xs">
-            <div className="text-white/50">{minutes} min ago</div>
+            <div className="text-white/50">{formatTime(createdAt)}</div>
 
             <div className="inline-flex w-fit items-center rounded-lg border border-amber-300/40 bg-amber-400/10 px-3 py-1 text-sm font-extrabold text-amber-200">
               {servingMode === "shared_tray" ? "አንድ ላይ" : "የተለያዩ ትእዛዞች"}
@@ -266,19 +267,23 @@ export default function KitchenPage() {
                 {servingMode === "shared_tray" ? "አንድ ላይ" : "የተለያዩ ትእዛዞች"}
               </span>
               <span>•</span>
-              <span>{new Date(createdAt).toLocaleTimeString()}</span>
+              <span>
+                {formatDateTime(new Date(createdAt), { includeTime: true })}
+              </span>
               {completedAt ? (
                 <>
                   <span>•</span>
-                  <span>{new Date(completedAt).toLocaleTimeString()}</span>
+                  <span>
+                    {formatDateTime(new Date(completedAt), {
+                      includeTime: true,
+                    })}
+                  </span>
                 </>
               ) : null}
             </div>
           </div>
 
-          <Badge className={statusBadge(status)}>
-            {status.toUpperCase()}
-          </Badge>
+          <Badge className={statusBadge(status)}>{status.toUpperCase()}</Badge>
         </div>
       </Card>
     );

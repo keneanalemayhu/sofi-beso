@@ -23,6 +23,7 @@ import {
   DialogDescription,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import Header from "@/components/common/Header";
 
 export default function CashierPage() {
   const [activeCategory, setActiveCategory] = useState("All");
@@ -181,6 +182,8 @@ export default function CashierPage() {
             </div>
 
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <Header />
+              
               <div className="w-full sm:w-[320px]">
                 <Input
                   value={search}
