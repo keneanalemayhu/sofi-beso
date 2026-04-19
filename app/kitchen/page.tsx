@@ -12,7 +12,6 @@ import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 
 function statusBadge(status: string) {
-  // keep simple: we treat any non-completed as active
   if (status === "pending") return "bg-amber-400 text-slate-950";
   if (status === "ready") return "bg-emerald-400 text-slate-950";
   return "bg-slate-400 text-slate-950";
@@ -178,7 +177,7 @@ function OrderRow({
                 </div>
 
                 {it.comment ? (
-                  <div className="text-sm text-amber-200/90 mt-0.5 break-words">
+                  <div className="text-sm text-amber-200/90 mt-0.5 wrap-break-word">
                     {it.comment}
                   </div>
                 ) : null}

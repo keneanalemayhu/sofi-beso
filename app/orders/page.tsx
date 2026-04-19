@@ -183,7 +183,7 @@ function OrdersSection({
   badgeClassName: string;
 }) {
 
-    const isCompletedSection = title.toLowerCase().includes("completed");
+  const isCompletedSection = title.toLowerCase().includes("completed");
 
   function OrderCard({
     order,
@@ -312,6 +312,104 @@ function OrdersSection({
       </Card>
     );
   }
+
+  function WaiterGroupCard({
+    group,
+    totalColor,
+    defaultOpen,
+    isCompletedSection,
+  }: {
+    group: {
+      waiterId: string;
+      waiterName: string;
+      total: number;
+      orders: {
+        order: {
+          id: string;
+          created_at: string;
+          completed_at?: string | null;
+          total_amount: number | string;
+          status?: string;
+        };
+        items: {
+          id: string;
+          quantity: number;
+          name: string;
+          comment?: string | null;
+          price_at_time?: number | string;
+        }[];
+      }[];
+    };
+    totalColor: string;
+    defaultOpen: boolean;
+    isCompletedSection: boolean;
+  }) {
+    const [open, setOpen] = useState(defaultOpen);
+
+    const totalItems = group.orders.reduce(
+      (sum, row) =>
+        sum + row.items.reduce((n, item) => n + Number(item.quantity || 0), 0),
+      0
+    );
+
+    return (
+      <Card className="border-white/10 bg-white/5 p-4">
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          className="flex w-full items-center justify-between gap-3 text-left"
+        >
+          <div className="flex items-start gap-3">
+            <div className="mt-0.5 text-white/70">
+              {open ? (
+                <ChevronDown className="h-4 w-4" />
+              ) : (
+                <ChevronRight className="h-4 w-4" />
+              )}
+            </div>
+
+            <div>
+              <div className="text-base font-extrabold text-white">
+                {group.waiterName}
+              </div>
+              <div className="text-xs text-white/60">
+                {group.orders.length} order{group.orders.length !== 1 ? "s" : ""} •{" "}
+                {totalItems} item{totalItems !== 1 ? "s" : ""}
+              </div>
+            </div>
+          </div>
+
+          <div className="text-right">
+            <div className="text-xs text-white/60">Total</div>
+            <div className={`text-lg font-extrabold ${totalColor}`}>
+              {money(group.total)}
+            </div>
+            <div className="mt-1 text-xs text-white/50">
+              {open ? "Hide orders" : "Show orders"}
+            </div>
+          </div>
+        </button>
+
+        {open ? (
+          <>
+            <Separator className="my-3 bg-white/10" />
+
+            <div className="flex flex-col gap-3">
+              {group.orders.map(({ order, items }) => (
+                <OrderCard
+                  key={order.id}
+                  order={order}
+                  items={items}
+                  defaultOpen={!isCompletedSection}
+                />
+              ))}
+            </div>
+          </>
+        ) : null}
+      </Card>
+    );
+  }
+
   return (
     <Card className="flex min-h-0 flex-col border-white/10 bg-white/5 p-4 backdrop-blur">
       <div className="flex items-center justify-between gap-3">
@@ -332,50 +430,15 @@ function OrdersSection({
               <div className="text-sm text-white/70">{emptyText}</div>
             </Card>
           ) : (
-            groups.map((group) => {
-              const totalItems = group.orders.reduce(
-                (sum, row) => sum + row.items.reduce((n, item) => n + Number(item.quantity || 0), 0),
-                0
-              );
-
-              return (
-                <Card
-                  key={`${title}-${group.waiterId}`}
-                  className="border-white/10 bg-white/5 p-4"
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <div className="text-base font-extrabold text-white">
-                        {group.waiterName}
-                      </div>
-                      <div className="text-xs text-white/60">
-                        {group.orders.length} order{group.orders.length !== 1 ? "s" : ""} • {totalItems} item{totalItems !== 1 ? "s" : ""}
-                      </div>
-                    </div>
-
-                    <div className="text-right">
-                      <div className="text-xs text-white/60">Total</div>
-                      <div className={`text-lg font-extrabold ${totalColor}`}>
-                        {money(group.total)}
-                      </div>
-                    </div>
-                  </div>
-
-                  <Separator className="my-3 bg-white/10" />
-
-                  <div className="flex flex-col gap-3">
-                    {group.orders.map(({ order, items }) => (
-                      <OrderCard
-                        key={order.id}
-                        order={order}
-                        items={items}
-                        defaultOpen={!isCompletedSection}
-                      />
-                    ))}
-                  </div>
-                </Card>
-              );
-            })
+            groups.map((group) => (
+              <WaiterGroupCard
+                key={`${title}-${group.waiterId}`}
+                group={group}
+                totalColor={totalColor}
+                defaultOpen={!isCompletedSection}
+                isCompletedSection={isCompletedSection}
+              />
+            ))
           )}
         </div>
       </ScrollArea>
