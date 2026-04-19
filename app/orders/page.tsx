@@ -34,6 +34,9 @@ export default function WaiterOrdersPage() {
     [waiters],
   );
 
+  const [pendingOpen, setPendingOpen] = useState(true);
+  const [completedOpen, setCompletedOpen] = useState(true);
+
   const { pendingGroups, completedGroups, pendingTotal, completedTotal } =
     useMemo(() => {
       const pendingMap = new Map<string, GroupedOrders>();
@@ -101,39 +104,41 @@ export default function WaiterOrdersPage() {
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-slate-950 text-white">
-      <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
-        <div>
-          <div className="text-lg font-extrabold tracking-tight">
-            Waiter Orders
+      <div className="border-b border-white/10 px-3 py-3 sm:px-4">
+        <div className="flex flex-col gap-3">
+          <div className="min-w-0">
+            <div className="text-lg font-extrabold tracking-tight">
+              Waiter Orders
+            </div>
+            <div className="text-xs text-white/70">
+              Pending and completed orders grouped by waiter
+            </div>
           </div>
-          <div className="text-xs text-white/70">
-            Pending and completed orders grouped by waiter
+
+          <div className="flex flex-wrap items-center gap-2">
+            <Header />
+
+            <Badge className="bg-amber-400 text-slate-950">
+              Pending {money(pendingTotal)}
+            </Badge>
+
+            <Badge className="bg-emerald-400 text-slate-950">
+              Completed {money(completedTotal)}
+            </Badge>
+
+            <Button
+              variant="secondary"
+              className="h-9 border border-white/10 bg-slate-800/70 px-3 text-white hover:bg-slate-800"
+              onClick={refresh}
+            >
+              Refresh
+            </Button>
           </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <Header />
-
-          <Badge className="bg-amber-400 text-slate-950">
-            Pending {money(pendingTotal)}
-          </Badge>
-
-          <Badge className="bg-emerald-400 text-slate-950">
-            Completed {money(completedTotal)}
-          </Badge>
-
-          <Button
-            variant="secondary"
-            className="border border-white/10 bg-slate-800/70 text-white hover:bg-slate-800"
-            onClick={refresh}
-          >
-            Refresh
-          </Button>
         </div>
       </div>
 
-      <div className="flex-1 min-h-0 p-3">
-        <div className="grid h-full min-h-0 gap-3 xl:grid-cols-2">
+      <div className="flex-1 min-h-0 p-2 sm:p-3">
+        <div className="flex h-full min-h-0 flex-col gap-3 xl:flex-row">
           <OrdersSection
             title="Pending Orders"
             subtitle="Orders still being handled"
@@ -142,6 +147,9 @@ export default function WaiterOrdersPage() {
             total={pendingTotal}
             totalColor="text-amber-300"
             badgeClassName="bg-amber-400 text-slate-950"
+            sectionOpen={pendingOpen}
+            onToggleSection={() => setPendingOpen((v) => !v)}
+            className={pendingOpen ? "min-h-0 flex-1" : "flex-none"}
           />
 
           <OrdersSection
@@ -152,6 +160,9 @@ export default function WaiterOrdersPage() {
             total={completedTotal}
             totalColor="text-emerald-300"
             badgeClassName="bg-emerald-400 text-slate-950"
+            sectionOpen={completedOpen}
+            onToggleSection={() => setCompletedOpen((v) => !v)}
+            className={completedOpen ? "min-h-0 flex-1" : "flex-none"}
           />
         </div>
       </div>
@@ -167,6 +178,9 @@ function OrdersSection({
   total,
   totalColor,
   badgeClassName,
+  sectionOpen,
+  onToggleSection,
+  className,
 }: {
   title: string;
   subtitle: string;
@@ -195,6 +209,9 @@ function OrdersSection({
   total: number;
   totalColor: string;
   badgeClassName: string;
+  sectionOpen: boolean;
+  onToggleSection: () => void;
+  className?: string;
 }) {
   const isCompletedSection = title.toLowerCase().includes("completed");
 
@@ -229,7 +246,13 @@ function OrdersSection({
     );
 
     return (
-      <Card className="border-white/10 bg-white/6 p-3">
+      <Card
+        className={
+          isCompletedSection
+            ? "rounded-lg border-white/10 bg-slate-900/70 px-3 py-2"
+            : "border-white/10 bg-white/6 p-3"
+        }
+      >
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
@@ -245,31 +268,45 @@ function OrdersSection({
             </div>
 
             <div>
-              <div className="font-semibold text-white">
+              <div
+                className={
+                  isCompletedSection
+                    ? "text-sm font-bold text-white"
+                    : "font-semibold text-white"
+                }
+              >
                 Order #{order.id.slice(0, 8)}
               </div>
 
               <div className="mt-1 text-xs text-white/60">
-                Created: {formatDateTime(new Date(order.created_at), { includeTime: true })}
+                Created:{" "}
+                {formatDateTime(new Date(order.created_at), {
+                  includeTime: true,
+                })}
               </div>
 
               {order.completed_at ? (
                 <div className="text-xs text-white/60">
-                  Completed: {formatDateTime(new Date(order.completed_at), { includeTime: true })}
+                  Completed:{" "}
+                  {formatDateTime(new Date(order.completed_at), {
+                    includeTime: true,
+                  })}
                 </div>
               ) : null}
 
-              <div className="mt-2 flex flex-wrap gap-2">
+              <div
+                className={`flex flex-wrap gap-2 ${isCompletedSection ? "mt-1" : "mt-2"}`}
+              >
                 <Badge
                   variant="outline"
-                  className="border-white/20 text-white/80"
+                  className="border-white/20 px-2 py-0 text-[10px] text-white/80"
                 >
                   {order.status || "unknown"}
                 </Badge>
 
                 <Badge
                   variant="outline"
-                  className="border-white/20 text-white/80"
+                  className="border-white/20 px-2 py-0 text-[10px] text-white/80"
                 >
                   {itemCount} items
                 </Badge>
@@ -281,7 +318,7 @@ function OrdersSection({
             <div className="font-extrabold tabular-nums text-white">
               {money(Number(order.total_amount))}
             </div>
-            <div className="mt-1 text-xs text-white/50">
+            <div className="mt-1 text-[10px] text-white/50">
               {open ? "Hide details" : "Show details"}
             </div>
           </div>
@@ -289,7 +326,11 @@ function OrdersSection({
 
         {open ? (
           <>
-            <Separator className="my-3 bg-white/10" />
+            <Separator
+              className={
+                isCompletedSection ? "my-2 bg-white/10" : "my-3 bg-white/10"
+              }
+            />
 
             <div className="flex flex-col gap-2">
               {items.map((item) => {
@@ -374,7 +415,7 @@ function OrdersSection({
     );
 
     return (
-      <Card className="border-white/10 bg-white/5 p-4">
+      <Card className="border-white/10 bg-white/5 px-3 py-2">
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
@@ -390,7 +431,7 @@ function OrdersSection({
             </div>
 
             <div>
-              <div className="text-base font-extrabold text-white">
+              <div className="text-sm font-extrabold text-white">
                 {group.waiterName}
               </div>
               <div className="text-xs text-white/60">
@@ -414,9 +455,9 @@ function OrdersSection({
 
         {open ? (
           <>
-            <Separator className="my-3 bg-white/10" />
+            <Separator className="my-2 bg-white/10" />
 
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-2">
               {group.orders.map(({ order, items }) => (
                 <OrderCard
                   key={order.id}
@@ -432,23 +473,33 @@ function OrdersSection({
     );
   }
 
-  return (
-    <Card className="flex min-h-0 flex-col border-white/10 bg-white/5 p-4 backdrop-blur">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <div className="text-base font-extrabold text-white">{title}</div>
-          <div className="text-xs text-white/60">{subtitle}</div>
+  return sectionOpen ? (
+    <Card
+      className={`flex min-h-0 flex-col border-white/10 bg-white/5 p-3 sm:p-4 backdrop-blur ${className ?? ""}`}
+    >
+      <button
+        type="button"
+        onClick={onToggleSection}
+        className="flex w-full items-center justify-between gap-3 text-left"
+      >
+        <div className="flex items-center gap-3">
+          <ChevronDown className="h-4 w-4 text-white/70" />
+
+          <div>
+            <div className="text-base font-extrabold text-white">{title}</div>
+            <div className="text-xs text-white/60">{subtitle}</div>
+          </div>
         </div>
 
         <Badge className={badgeClassName}>{money(total)}</Badge>
-      </div>
+      </button>
 
       <Separator className="my-3 bg-white/10" />
 
       <ScrollArea className="min-h-0 flex-1 pr-2">
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-2">
           {groups.length === 0 ? (
-            <Card className="border-white/10 bg-white/5 p-4">
+            <Card className="border-white/10 bg-white/5 p-3">
               <div className="text-sm text-white/70">{emptyText}</div>
             </Card>
           ) : (
@@ -465,5 +516,22 @@ function OrdersSection({
         </div>
       </ScrollArea>
     </Card>
+  ) : (
+    <button
+      type="button"
+      onClick={onToggleSection}
+      className={`flex h-fit w-full items-center justify-between rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-left backdrop-blur ${className ?? ""}`}
+    >
+      <div className="flex items-center gap-3">
+        <ChevronRight className="h-4 w-4 text-white/70" />
+
+        <div>
+          <div className="text-base font-extrabold text-white">{title}</div>
+          <div className="text-xs text-white/60">{subtitle}</div>
+        </div>
+      </div>
+
+      <Badge className={badgeClassName}>{money(total)}</Badge>
+    </button>
   );
 }

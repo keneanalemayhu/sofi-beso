@@ -50,7 +50,6 @@ export default function OrdersHistoryPage() {
   const { orders, loading, error, refresh } =
     useCompletedOrdersByDay(selectedDay);
 
-
   const { groups, total } = useMemo(() => {
     const map = new Map<string, GroupedOrders>();
 
@@ -78,6 +77,8 @@ export default function OrdersHistoryPage() {
     return { groups, total };
   }, [orders]);
 
+  const { formatDateTime } = useCalendar();
+
   if (loading) {
     return (
       <div className="h-screen bg-slate-950 p-4 text-white">
@@ -96,49 +97,51 @@ export default function OrdersHistoryPage() {
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-slate-950 text-white">
-      <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
-        <div>
-          <div className="text-lg font-extrabold tracking-tight">
-            Completed Orders By Day
-          </div>
-          <div className="text-xs text-white/70">
-            View only completed orders for a selected day
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <Header />
-
-          <input
-            type="date"
-            value={selectedDay}
-            onChange={(e) => setSelectedDay(e.target.value)}
-            className="rounded-md border border-white/10 bg-slate-800 px-3 py-2 text-sm text-white outline-none"
-          />
-
-          <div className="flex flex-col items-end">
-            <div className="text-xs text-white/60">Total (All Waiters)</div>
-            <div className="text-lg font-extrabold text-emerald-300">
-              {money(total)}
+      <div className="border-b border-white/10 px-3 py-3 sm:px-4">
+        <div className="flex flex-col gap-3">
+          <div className="min-w-0">
+            <div className="text-lg font-extrabold tracking-tight">
+              Completed Orders By Day
+            </div>
+            <div className="text-xs text-white/70">
+              View only completed orders for a selected day
             </div>
           </div>
 
-          <Button
-            variant="secondary"
-            className="border border-white/10 bg-slate-800/70 text-white hover:bg-slate-800"
-            onClick={refresh}
-          >
-            Refresh
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Header />
+
+            <input
+              type="date"
+              value={selectedDay}
+              onChange={(e) => setSelectedDay(e.target.value)}
+              className="h-9 rounded-md border border-white/10 bg-slate-800 px-3 text-sm text-white outline-none"
+            />
+
+            <div className="flex flex-col">
+              <div className="text-xs text-white/60">Total</div>
+              <div className="text-lg font-extrabold text-emerald-300">
+                {money(total)}
+              </div>
+            </div>
+
+            <Button
+              variant="secondary"
+              className="h-9 border border-white/10 bg-slate-800/70 px-3 text-white hover:bg-slate-800"
+              onClick={refresh}
+            >
+              Refresh
+            </Button>
+          </div>
         </div>
       </div>
 
-      <div className="flex-1 min-h-0 p-3">
-        <Card className="flex min-h-0 h-full flex-col border-white/10 bg-white/5 p-4 backdrop-blur">
+      <div className="flex-1 min-h-0 p-2 sm:p-3">
+        <Card className="flex min-h-0 h-full flex-col border-white/10 bg-white/5 p-3 sm:p-4 backdrop-blur">
           <div className="flex items-center justify-between gap-3">
             <div>
               <div className="text-base font-extrabold text-white">
-                {selectedDay}
+                {formatDateTime(new Date(selectedDay), { includeTime: false })}
               </div>
               <div className="text-xs text-white/60">
                 Completed orders grouped by waiter
@@ -155,7 +158,7 @@ export default function OrdersHistoryPage() {
           <ScrollArea className="min-h-0 flex-1 pr-2">
             <div className="flex flex-col gap-3">
               {groups.length === 0 ? (
-                <Card className="border-white/10 bg-white/5 p-4">
+                <Card className="border-white/10 bg-white/5 px-3 py-2">
                   <div className="text-sm text-white/70">
                     No completed orders found for this day.
                   </div>
@@ -210,7 +213,7 @@ function WaiterGroupCard({ group }: { group: GroupedOrders }) {
           </div>
 
           <div>
-            <div className="text-base font-extrabold text-white">
+            <div className="text-sm font-extrabold text-white">
               {group.waiterName}
             </div>
             <div className="text-xs text-white/60">
@@ -231,9 +234,9 @@ function WaiterGroupCard({ group }: { group: GroupedOrders }) {
 
       {open ? (
         <>
-          <Separator className="my-3 bg-white/10" />
+          <Separator className="my-2 bg-white/10" />
 
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-2">
             {group.orders.map(({ order, items }) => (
               <OrderCard key={order.id} order={order} items={items} />
             ))}
@@ -273,7 +276,7 @@ function OrderCard({
   );
 
   return (
-    <Card className="border-white/10 bg-white/6 p-3">
+    <Card className="rounded-lg border-white/10 bg-slate-900/70 px-3 py-2">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -289,7 +292,7 @@ function OrderCard({
           </div>
 
           <div>
-            <div className="font-semibold text-white">
+            <div className="text-sm font-bold text-white">
               Order #{order.id.slice(0, 8)}
             </div>
 
@@ -312,14 +315,14 @@ function OrderCard({
             <div className="mt-2 flex flex-wrap gap-2">
               <Badge
                 variant="outline"
-                className="border-white/20 text-white/80"
+                className="border-white/20 px-2 py-0 text-[10px] text-white/80"
               >
                 completed
               </Badge>
 
               <Badge
                 variant="outline"
-                className="border-white/20 text-white/80"
+                className="border-white/20 px-2 py-0 text-[10px] text-white/80"
               >
                 {itemCount} items
               </Badge>
@@ -331,7 +334,7 @@ function OrderCard({
           <div className="font-extrabold tabular-nums text-white">
             {money(Number(order.total_amount))}
           </div>
-          <div className="mt-1 text-xs text-white/50">
+          <div className="mt-1 text-[10px] text-white/50">
             {open ? "Hide details" : "Show details"}
           </div>
         </div>
@@ -339,9 +342,9 @@ function OrderCard({
 
       {open ? (
         <>
-          <Separator className="my-3 bg-white/10" />
+          <Separator className="my-2 bg-white/10" />
 
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-1.5">
             {items.map((item) => {
               const price = Number(item.price_at_time || 0);
               const qty = Number(item.quantity || 0);
