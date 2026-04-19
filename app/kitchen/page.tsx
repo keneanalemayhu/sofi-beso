@@ -23,8 +23,20 @@ export default function KitchenPage() {
   const [showCompleted, setShowCompleted] = useState(false);
 
   const { formatDateTime } = useCalendar();
-
   const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const isToday = (value?: string | null) => {
+    if (!value) return false;
+
+    const d = new Date(value);
+    const now = new Date();
+
+    return (
+      d.getFullYear() === now.getFullYear() &&
+      d.getMonth() === now.getMonth() &&
+      d.getDate() === now.getDate()
+    );
+  };
 
   const visibleOrders = useMemo(() => {
     return orders
@@ -86,19 +98,6 @@ export default function KitchenPage() {
 
     return () => window.removeEventListener("click", unlock);
   }, []);
-
-  const isToday = (value?: string | null) => {
-    if (!value) return false;
-
-    const d = new Date(value);
-    const now = new Date();
-
-    return (
-      d.getFullYear() === now.getFullYear() &&
-      d.getMonth() === now.getMonth() &&
-      d.getDate() === now.getDate()
-    );
-  };
 
   return (
     <div className="h-screen flex flex-col overflow-hidden bg-slate-950 text-white">
