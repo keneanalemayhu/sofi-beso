@@ -48,10 +48,10 @@ export default function KitchenPage() {
         return status !== "completed";
       })
       .sort((a, b) => {
-        return (
-          new Date(b.order.created_at).getTime() -
-          new Date(a.order.created_at).getTime()
-        );
+        const aTime = new Date(a.order.created_at).getTime();
+        const bTime = new Date(b.order.created_at).getTime();
+
+        return showCompleted ? bTime - aTime : aTime - bTime;
       });
   }, [orders, showCompleted]);
 
