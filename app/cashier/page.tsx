@@ -37,7 +37,7 @@ export default function CashierPage() {
   const [voidingOrderId, setVoidingOrderId] = useState<string | null>(null);
 
   const [servingMode, setServingMode] = useState<"individual" | "shared_tray">(
-    "individual"
+    "individual",
   );
 
   const {
@@ -53,15 +53,8 @@ export default function CashierPage() {
     error: menuError,
   } = useMenu(search, activeCategory);
 
-  const {
-    cart,
-    total,
-    addToCart,
-    decQty,
-    incQty,
-    updateComment,
-    clearCart,
-  } = useCart();
+  const { cart, total, addToCart, decQty, incQty, updateComment, clearCart } =
+    useCart();
 
   const loadError = menuError || waitersError;
   const loading = menuLoading || waitersLoading;
@@ -88,6 +81,8 @@ export default function CashierPage() {
         waiter_id: selectedWaiterId,
         created_by: CASHIER_USER_ID,
         serving_mode: servingMode,
+        device_id: "cashier-1",
+        local_id: crypto.randomUUID(),
         items: cart.map((c) => ({
           menu_item_id: c.menu_item_id,
           quantity: c.quantity,
@@ -183,7 +178,7 @@ export default function CashierPage() {
 
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
               <Header />
-              
+
               <div className="w-full sm:w-[320px]">
                 <Input
                   value={search}
@@ -214,7 +209,9 @@ export default function CashierPage() {
 
                 <DialogContent className="max-w-4xl border-white/10 bg-slate-950 text-white">
                   <DialogHeader>
-                    <DialogTitle className="text-white">Active Orders</DialogTitle>
+                    <DialogTitle className="text-white">
+                      Active Orders
+                    </DialogTitle>
                     <DialogDescription className="text-white/60">
                       Pending orders currently in the system
                     </DialogDescription>
@@ -240,7 +237,9 @@ export default function CashierPage() {
 
                   <div className="min-h-0">
                     {ordersLoading ? (
-                      <div className="text-sm text-white/70">Loading orders...</div>
+                      <div className="text-sm text-white/70">
+                        Loading orders...
+                      </div>
                     ) : activeOrders.length === 0 ? (
                       <div className="rounded-2xl border border-dashed border-white/10 p-6 text-sm text-white/70">
                         No active orders.
@@ -256,10 +255,14 @@ export default function CashierPage() {
                               <div className="flex items-start justify-between gap-3">
                                 <div className="min-w-0">
                                   <div className="font-semibold text-white truncate">
-                                    {items.map(i => `${i.name} x${i.quantity}`).join(" • ")}
+                                    {items
+                                      .map((i) => `${i.name} x${i.quantity}`)
+                                      .join(" • ")}
                                   </div>
                                   <div className="mt-1 text-xs text-white/60">
-                                    {new Date(order.created_at).toLocaleString()}
+                                    {new Date(
+                                      order.created_at,
+                                    ).toLocaleString()}
                                   </div>
                                   <div className="text-xs text-white/60">
                                     Waiter: {order.waiter_name ?? "Unknown"}
@@ -292,7 +295,9 @@ export default function CashierPage() {
                                 disabled={voidingOrderId === order.id}
                                 className="mt-3 h-10 w-full"
                               >
-                                {voidingOrderId === order.id ? "Voiding..." : "Void Order"}
+                                {voidingOrderId === order.id
+                                  ? "Voiding..."
+                                  : "Void Order"}
                               </Button>
                             </Card>
                           ))}
@@ -565,7 +570,9 @@ export default function CashierPage() {
 
                     <Button
                       onClick={submitOrder}
-                      disabled={cart.length === 0 || submitting || !selectedWaiterId}
+                      disabled={
+                        cart.length === 0 || submitting || !selectedWaiterId
+                      }
                       className="h-14 w-full text-base font-extrabold text-slate-950 bg-amber-400 hover:bg-amber-300"
                     >
                       {submitting ? "Sending..." : "ወደ ኩሽና ይላኩ"}
@@ -580,7 +587,7 @@ export default function CashierPage() {
             </Card>
           </section>
         </main>
-      </div >
-    </div >
+      </div>
+    </div>
   );
 }
