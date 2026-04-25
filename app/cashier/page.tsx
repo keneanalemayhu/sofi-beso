@@ -25,6 +25,23 @@ import {
 } from "@/components/ui/dialog";
 import Header from "@/components/common/Header";
 
+function createLocalId() {
+  if (
+    typeof globalThis !== "undefined" &&
+    globalThis.crypto &&
+    typeof globalThis.crypto.randomUUID === "function"
+  ) {
+    return globalThis.crypto.randomUUID();
+  }
+
+  return "10000000-1000-4000-8000-100000000000".replace(/[018]/g, (c) =>
+    (
+      Number(c) ^
+      ((Math.random() * 16) >> (Number(c) / 4))
+    ).toString(16),
+  );
+}
+
 export default function CashierPage() {
   const [activeCategory, setActiveCategory] = useState("All");
   const [search, setSearch] = useState("");
@@ -82,7 +99,7 @@ export default function CashierPage() {
         created_by: CASHIER_USER_ID,
         serving_mode: servingMode,
         device_id: "cashier-1",
-        local_id: crypto.randomUUID(),
+        local_id: createLocalId(),
         items: cart.map((c) => ({
           menu_item_id: c.menu_item_id,
           quantity: c.quantity,
