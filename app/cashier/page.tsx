@@ -35,10 +35,7 @@ function createLocalId() {
   }
 
   return "10000000-1000-4000-8000-100000000000".replace(/[018]/g, (c) =>
-    (
-      Number(c) ^
-      ((Math.random() * 16) >> (Number(c) / 4))
-    ).toString(16),
+    (Number(c) ^ ((Math.random() * 16) >> (Number(c) / 4))).toString(16),
   );
 }
 
@@ -77,6 +74,29 @@ export default function CashierPage() {
   const loading = menuLoading || waitersLoading;
 
   const selectedWaiterId = waiterId ?? waiters[0]?.id ?? null;
+
+  async function printKitchenReceipt(order: {
+    orderId: string;
+    waiterName: string;
+    servingMode: "individual" | "shared_tray";
+    items: typeof cart;
+    total: number;
+    createdAt: string;
+  }) {
+    const res = await fetch("/api/print", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        order,
+      }),
+    });
+
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      throw new Error(data?.error || "Print failed");
+    }
+  }
 
   async function submitOrder() {
     if (!selectedWaiterId) {
@@ -118,6 +138,16 @@ export default function CashierPage() {
       if (!res.ok) {
         throw new Error((data as any)?.error || `Order failed (${res.status})`);
       }
+
+      await printKitchenReceipt({
+        orderId: data.orderId,
+        waiterName:
+          waiters.find((w) => w.id === selectedWaiterId)?.name ?? "Unknown",
+        servingMode,
+        items: cart,
+        total,
+        createdAt: new Date().toISOString(),
+      });
 
       clearCart();
       setServingMode("individual");
@@ -184,13 +214,14 @@ export default function CashierPage() {
   }
 
   return (
-    <div className="h-screen overflow-hidden bg-slate-950 text-white">
+    <div className="h-screen overflow-hidden bg-slate-100 text-slate-950">
       <div className="flex h-full min-h-0 flex-col">
-        {/* Header */}
-        <header className="border-b border-white/10 bg-slate-950 px-4 py-3">
+        <header className="border-b border-slate-200 bg-white px-4 py-3 shadow-sm">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <h1 className="text-xl font-extrabold tracking-tight">Cashier</h1>
+              <h1 className="text-xl font-extrabold tracking-tight text-slate-950">
+                Cashier
+              </h1>
             </div>
 
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
@@ -201,7 +232,7 @@ export default function CashierPage() {
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="ሜኑ ላይ ይፍልጉ..."
-                  className="h-12 border-white/10 bg-slate-900/70 text-base text-white placeholder:text-white/45 focus-visible:ring-teal-500/40"
+                  className="h-12 border-slate-300 bg-white text-base text-slate-950 placeholder:text-slate-400 focus-visible:ring-teal-500/40"
                 />
               </div>
 
@@ -209,27 +240,25 @@ export default function CashierPage() {
                 open={ordersOpen}
                 onOpenChange={async (open) => {
                   setOrdersOpen(open);
-                  if (open) {
-                    await fetchActiveOrders();
-                  }
+                  if (open) await fetchActiveOrders();
                 }}
               >
                 <DialogTrigger asChild>
                   <Button
                     type="button"
                     variant="secondary"
-                    className="h-12 border border-white/10 bg-slate-800/70 px-4 text-white hover:bg-slate-800"
+                    className="h-12 border border-slate-300 bg-white px-4 text-slate-900 hover:bg-slate-100"
                   >
                     ትእዛዞችን አሳይ ({activeOrders.length})
                   </Button>
                 </DialogTrigger>
 
-                <DialogContent className="max-w-4xl border-white/10 bg-slate-950 text-white">
+                <DialogContent className="max-w-4xl border-slate-200 bg-white text-slate-950">
                   <DialogHeader>
-                    <DialogTitle className="text-white">
+                    <DialogTitle className="text-slate-950">
                       Active Orders
                     </DialogTitle>
-                    <DialogDescription className="text-white/60">
+                    <DialogDescription className="text-slate-600">
                       Pending orders currently in the system
                     </DialogDescription>
                   </DialogHeader>
@@ -237,7 +266,7 @@ export default function CashierPage() {
                   <div className="mt-2 flex items-center justify-between gap-3">
                     <Badge
                       variant="outline"
-                      className="border-white/20 text-white/85"
+                      className="border-slate-300 text-slate-700"
                     >
                       {activeOrders.length} orders
                     </Badge>
@@ -246,7 +275,7 @@ export default function CashierPage() {
                       type="button"
                       variant="secondary"
                       onClick={fetchActiveOrders}
-                      className="border border-white/10 bg-slate-800/70 text-white hover:bg-slate-800"
+                      className="border border-slate-300 bg-white text-slate-900 hover:bg-slate-100"
                     >
                       Refresh
                     </Button>
@@ -254,11 +283,11 @@ export default function CashierPage() {
 
                   <div className="min-h-0">
                     {ordersLoading ? (
-                      <div className="text-sm text-white/70">
+                      <div className="text-sm text-slate-600">
                         Loading orders...
                       </div>
                     ) : activeOrders.length === 0 ? (
-                      <div className="rounded-2xl border border-dashed border-white/10 p-6 text-sm text-white/70">
+                      <div className="rounded-2xl border border-dashed border-slate-300 p-6 text-sm text-slate-600">
                         No active orders.
                       </div>
                     ) : (
@@ -267,27 +296,27 @@ export default function CashierPage() {
                           {activeOrders.map(({ order, items }) => (
                             <Card
                               key={order.id}
-                              className="border-white/10 bg-white/5 hover:bg-white/8 p-3"
+                              className="border-slate-200 bg-white p-3 shadow-sm"
                             >
                               <div className="flex items-start justify-between gap-3">
                                 <div className="min-w-0">
-                                  <div className="font-semibold text-white truncate">
+                                  <div className="truncate font-semibold text-slate-950">
                                     {items
                                       .map((i) => `${i.name} x${i.quantity}`)
                                       .join(" • ")}
                                   </div>
-                                  <div className="mt-1 text-xs text-white/60">
+                                  <div className="mt-1 text-xs text-slate-500">
                                     {new Date(
                                       order.created_at,
                                     ).toLocaleString()}
                                   </div>
-                                  <div className="text-xs text-white/60">
+                                  <div className="text-xs text-slate-500">
                                     Waiter: {order.waiter_name ?? "Unknown"}
                                   </div>
                                 </div>
 
                                 <div className="text-right">
-                                  <div className="font-extrabold tabular-nums text-white">
+                                  <div className="font-extrabold tabular-nums text-slate-950">
                                     {money(Number(order.total_amount))}
                                   </div>
                                 </div>
@@ -298,7 +327,7 @@ export default function CashierPage() {
                                   <Badge
                                     key={item.id}
                                     variant="outline"
-                                    className="border-white/20 text-white/85"
+                                    className="border-slate-300 bg-slate-50 text-slate-700"
                                   >
                                     {item.quantity}× {item.name}
                                   </Badge>
@@ -328,11 +357,9 @@ export default function CashierPage() {
           </div>
         </header>
 
-        {/* Main */}
         <main className="flex-1 min-h-0 overflow-hidden p-3">
-          <section className="grid h-full min-h-0 gap-3 xl:grid-cols-[1.35fr_1fr]">
-            {/* Menu */}
-            <Card className="flex min-h-0 h-full flex-col border-white/10 bg-white/5 p-3 backdrop-blur">
+          <section className="grid h-full min-h-0 gap-3 xl:grid-cols-[1.5fr_0.95fr]">
+            <Card className="flex min-h-0 h-full flex-col border-slate-200 bg-white p-3 shadow-sm">
               <div className="shrink-0">
                 <ScrollArea className="w-full whitespace-nowrap">
                   <div className="flex gap-2 pb-2">
@@ -347,8 +374,8 @@ export default function CashierPage() {
                           className={[
                             "h-11 rounded-full border px-4 text-sm whitespace-nowrap",
                             active
-                              ? "border-teal-400 bg-teal-500 text-slate-950 hover:bg-teal-400"
-                              : "border-white/10 bg-slate-800/70 text-white hover:bg-slate-700 hover:border-teal-400/50",
+                              ? "border-teal-500 bg-teal-500 text-white hover:bg-teal-600"
+                              : "border-slate-300 bg-white text-slate-700 hover:bg-slate-100",
                           ].join(" ")}
                         >
                           {c}
@@ -359,42 +386,42 @@ export default function CashierPage() {
                 </ScrollArea>
               </div>
 
-              <Separator className="my-3 shrink-0 bg-white/10" />
+              <Separator className="my-3 shrink-0 bg-slate-200" />
 
               <div className="min-h-0 flex-1">
                 {loading ? (
-                  <div className="text-sm text-white/70">Loading...</div>
+                  <div className="text-sm text-slate-600">Loading...</div>
                 ) : loadError ? (
-                  <div className="text-sm text-red-300">{loadError}</div>
+                  <div className="text-sm text-red-600">{loadError}</div>
                 ) : (
                   <ScrollArea className="h-full pr-2">
                     <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
                       {filteredMenu.map((m) => (
-                        <Button
+                        <button
                           key={m.id}
+                          type="button"
                           onClick={() => addToCart(m)}
-                          variant="ghost"
-                          className="h-31 rounded-2xl border border-white/10 bg-linear-to-b from-white/12 to-white/6 p-3 text-left hover:from-white/12 hover:to-white/6 hover:border-teal-400/50 active:scale-[0.98]"
+                          className="flex h-32 rounded-2xl border border-slate-200 bg-white p-3 text-left shadow-sm transition hover:border-teal-400 hover:bg-teal-50 active:scale-[0.98]"
                         >
-                          <div className="flex h-full w-full flex-col items-start justify-between">
-                            <div className="line-clamp-2 text-sm font-bold leading-tight text-white">
+                          <div className="flex h-full w-full flex-col justify-between">
+                            <div className="line-clamp-2 text-sm font-extrabold leading-tight text-slate-950">
                               {m.name}
                             </div>
 
-                            <div className="w-full">
+                            <div>
                               <Badge
                                 variant="outline"
-                                className="mb-2 max-w-full truncate border-white/20 text-white/80"
+                                className="mb-2 max-w-full truncate border-slate-300 bg-slate-50 text-slate-600"
                               >
                                 {m.category_name}
                               </Badge>
 
-                              <div className="text-base font-extrabold tabular-nums text-white">
+                              <div className="text-base font-extrabold tabular-nums text-slate-950">
                                 {money(Number(m.price))}
                               </div>
                             </div>
                           </div>
-                        </Button>
+                        </button>
                       ))}
                     </div>
                   </ScrollArea>
@@ -402,20 +429,20 @@ export default function CashierPage() {
               </div>
             </Card>
 
-            {/* Order entry */}
-            <Card className="flex min-h-0 flex-1 flex-col border-white/10 bg-white/5 p-3 backdrop-blur">
+            <Card className="flex min-h-0 flex-1 flex-col border-slate-200 bg-white p-3 shadow-sm">
               <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
                 <div className="min-w-0 flex-1">
                   <div className="mb-2">
-                    <div className="text-lg font-extrabold text-white">
+                    <div className="text-lg font-extrabold text-slate-950">
                       የአሁን ትእዛዞች
                     </div>
-                    <div className="text-xs text-white/60">
+                    <div className="text-xs text-slate-500">
                       {cart.length} item{cart.length === 1 ? "" : "s"}
                     </div>
                   </div>
+
                   <div>
-                    <div className="mb-2 text-sm font-semibold text-white/75">
+                    <div className="mb-2 text-sm font-semibold text-slate-700">
                       Waiter
                     </div>
 
@@ -433,8 +460,8 @@ export default function CashierPage() {
                               className={[
                                 "h-11 rounded-full border px-4",
                                 active
-                                  ? "border-teal-400 bg-teal-500 text-slate-950 hover:bg-teal-400"
-                                  : "border-white/10 bg-slate-800/70 text-white hover:bg-slate-700 hover:border-teal-400/50",
+                                  ? "border-teal-500 bg-teal-500 text-white hover:bg-teal-600"
+                                  : "border-slate-300 bg-white text-slate-700 hover:bg-slate-100",
                               ].join(" ")}
                             >
                               {w.name}
@@ -446,7 +473,7 @@ export default function CashierPage() {
                   </div>
 
                   <div className="mt-3">
-                    <div className="mb-2 text-sm font-semibold text-white/75">
+                    <div className="mb-2 text-sm font-semibold text-slate-700">
                       Serving Style
                     </div>
 
@@ -458,8 +485,8 @@ export default function CashierPage() {
                         className={[
                           "h-11 rounded-full border px-4",
                           servingMode === "individual"
-                            ? "border-teal-400 bg-teal-500 text-slate-950 hover:bg-teal-400"
-                            : "border-white/10 bg-slate-800/70 text-white hover:bg-slate-700 hover:border-teal-400/50",
+                            ? "border-teal-500 bg-teal-500 text-white hover:bg-teal-600"
+                            : "border-slate-300 bg-white text-slate-700 hover:bg-slate-100",
                         ].join(" ")}
                       >
                         የተለያዩ ትእዛዞች
@@ -472,8 +499,8 @@ export default function CashierPage() {
                         className={[
                           "h-11 rounded-full border px-4",
                           servingMode === "shared_tray"
-                            ? "border-teal-400 bg-teal-500 text-slate-950 hover:bg-teal-400"
-                            : "border-white/10 bg-slate-800/70 text-white hover:bg-slate-700 hover:border-teal-400/50",
+                            ? "border-teal-500 bg-teal-500 text-white hover:bg-teal-600"
+                            : "border-slate-300 bg-white text-slate-700 hover:bg-slate-100",
                         ].join(" ")}
                       >
                         አንድ ላይ
@@ -486,20 +513,19 @@ export default function CashierPage() {
                   variant="ghost"
                   onClick={clearCart}
                   disabled={cart.length === 0 || submitting}
-                  className="h-11 shrink-0 text-white hover:bg-slate-700"
+                  className="h-11 shrink-0 text-slate-700 hover:bg-slate-100"
                 >
                   ያጥፉ
                 </Button>
               </div>
 
-              <Separator className="my-3 bg-white/10" />
+              <Separator className="my-3 bg-slate-200" />
 
-              {/* Cart items */}
               <div className="flex min-h-0 flex-1 flex-col gap-3 2xl:grid 2xl:grid-cols-[1fr_300px]">
                 <div className="min-h-0 flex-1 overflow-hidden">
                   <ScrollArea className="h-full pr-2">
                     {cart.length === 0 ? (
-                      <div className="rounded-2xl border border-dashed border-white/10 p-6 text-sm text-white/70">
+                      <div className="rounded-2xl border border-dashed border-slate-300 p-6 text-sm text-slate-500">
                         ምንም ነገር አልተመረጠም።
                       </div>
                     ) : (
@@ -507,13 +533,13 @@ export default function CashierPage() {
                         {cart.map((it) => (
                           <Card
                             key={it.menu_item_id}
-                            className="border-white/10 bg-white/5 hover:bg-white/8 p-3"
+                            className="border-slate-200 bg-slate-50 p-3"
                           >
                             <div className="flex items-start justify-between gap-3">
-                              <div className="font-semibold leading-tight text-white">
+                              <div className="font-semibold leading-tight text-slate-950">
                                 {it.name}
                               </div>
-                              <div className="font-extrabold tabular-nums text-white">
+                              <div className="font-extrabold tabular-nums text-slate-950">
                                 {money(it.price * it.quantity)}
                               </div>
                             </div>
@@ -521,27 +547,27 @@ export default function CashierPage() {
                             <div className="mt-3 flex items-center gap-2">
                               <Button
                                 variant="secondary"
-                                className="h-12 w-12 border border-white/10 bg-slate-800/70 p-0 text-lg text-white hover:border-teal-400 hover:bg-slate-700"
+                                className="h-12 w-12 border border-slate-300 bg-white p-0 text-lg text-slate-950 hover:bg-slate-100"
                                 onClick={() => decQty(it.menu_item_id)}
                                 disabled={submitting}
                               >
                                 –
                               </Button>
 
-                              <div className="w-12 text-center text-lg font-extrabold tabular-nums text-white">
+                              <div className="w-12 text-center text-lg font-extrabold tabular-nums text-slate-950">
                                 {it.quantity}
                               </div>
 
                               <Button
                                 variant="secondary"
-                                className="h-12 w-12 border border-white/10 bg-slate-800/70 p-0 text-lg text-white hover:border-teal-400 hover:bg-slate-700"
+                                className="h-12 w-12 border border-slate-300 bg-white p-0 text-lg text-slate-950 hover:bg-slate-100"
                                 onClick={() => incQty(it.menu_item_id)}
                                 disabled={submitting}
                               >
                                 +
                               </Button>
 
-                              <div className="ml-auto text-xs tabular-nums text-white/65">
+                              <div className="ml-auto text-xs tabular-nums text-slate-500">
                                 @ {money(it.price)}
                               </div>
                             </div>
@@ -554,7 +580,7 @@ export default function CashierPage() {
                                 }
                                 placeholder="Note (e.g. no onions)"
                                 disabled={submitting}
-                                className="h-11 border-white/10 bg-slate-900/70 text-white placeholder:text-white/50 focus-visible:ring-teal-500/40"
+                                className="h-11 border-slate-300 bg-white text-slate-950 placeholder:text-slate-400 focus-visible:ring-teal-500/40"
                               />
                             </div>
                           </Card>
@@ -564,22 +590,21 @@ export default function CashierPage() {
                   </ScrollArea>
                 </div>
 
-                {/* Summary */}
-                <Card className="mt-auto flex flex-col gap-3 border-white/10 bg-white/5 hover:bg-white/8 p-3 2xl:mt-0 2xl:h-full">
+                <Card className="mt-auto flex flex-col gap-3 border-slate-200 bg-slate-50 p-3 2xl:mt-0 2xl:h-full">
                   <div className="flex-1">
-                    <div className="rounded-xl border border-white/10 bg-slate-900/30 p-3">
+                    <div className="rounded-xl border border-slate-200 bg-white p-3">
                       <div className="flex items-center justify-between text-sm">
-                        <span className="text-white/70">ምግቦች</span>
-                        <span className="font-bold tabular-nums text-white">
+                        <span className="text-slate-600">ምግቦች</span>
+                        <span className="font-bold tabular-nums text-slate-950">
                           {cart.reduce((sum, item) => sum + item.quantity, 0)}
                         </span>
                       </div>
 
-                      <Separator className="my-3 bg-white/10" />
+                      <Separator className="my-3 bg-slate-200" />
 
                       <div className="flex items-center justify-between text-base">
-                        <span className="text-white/70">ጠቅላላ</span>
-                        <span className="text-2xl font-extrabold tabular-nums text-white">
+                        <span className="text-slate-600">ጠቅላላ</span>
+                        <span className="text-2xl font-extrabold tabular-nums text-slate-950">
                           {money(total)}
                         </span>
                       </div>
@@ -590,12 +615,12 @@ export default function CashierPage() {
                       disabled={
                         cart.length === 0 || submitting || !selectedWaiterId
                       }
-                      className="h-14 w-full text-base font-extrabold text-slate-950 bg-amber-400 hover:bg-amber-300"
+                      className="mt-3 h-14 w-full bg-amber-400 text-base font-extrabold text-slate-950 hover:bg-amber-300"
                     >
-                      {submitting ? "Sending..." : "ወደ ኩሽና ይላኩ"}
+                      {submitting ? "Printing..." : "ትእዛዝ ያትሙ"}
                     </Button>
 
-                    <div className="text-center text-xs text-white/60 mt-1">
+                    <div className="mt-1 text-center text-xs text-slate-500">
                       Connected to live API.
                     </div>
                   </div>

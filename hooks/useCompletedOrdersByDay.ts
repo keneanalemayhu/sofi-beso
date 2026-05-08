@@ -3,7 +3,6 @@
 
 "use client";
 import { useCallback, useEffect, useState } from "react";
-
 import { API_BASE, USE_MOCK } from "@/lib/config";
 import { mockCompletedOrdersByDay } from "@/lib/mock-history";
 import type { OrderWithItems } from "@/types/order";

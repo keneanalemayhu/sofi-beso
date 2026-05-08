@@ -81,30 +81,34 @@ export default function OrdersHistoryPage() {
 
   if (loading) {
     return (
-      <div className="h-screen bg-slate-950 p-4 text-white">
-        <div className="text-sm text-white/70">Loading completed orders...</div>
+      <div className="flex h-screen items-center justify-center bg-slate-50 text-slate-950">
+        <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600 shadow-sm">
+          Loading orders...
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="h-screen bg-slate-950 p-4 text-white">
-        <div className="text-sm text-red-300">{error}</div>
+      <div className="flex h-screen items-center justify-center bg-slate-50 text-slate-950">
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-sm">
+          {error}
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-slate-950 text-white">
-      <div className="border-b border-white/10 px-3 py-3 sm:px-4">
+    <div className="flex h-screen flex-col overflow-hidden bg-slate-100 text-slate-950">
+      <header className="border-b border-slate-200 bg-white px-3 py-3 shadow-sm sm:px-4">
         <div className="flex flex-col gap-3">
-          <div className="min-w-0">
-            <div className="text-lg font-extrabold tracking-tight">
-              Completed Orders By Day
+          <div>
+            <div className="text-xl font-extrabold tracking-tight text-slate-950">
+              Orders By Day
             </div>
-            <div className="text-xs text-white/70">
-              View only completed orders for a selected day
+            <div className="text-xs text-slate-500">
+              View orders for a selected day, grouped by waiter
             </div>
           </div>
 
@@ -115,52 +119,58 @@ export default function OrdersHistoryPage() {
               type="date"
               value={selectedDay}
               onChange={(e) => setSelectedDay(e.target.value)}
-              className="h-9 rounded-md border border-white/10 bg-slate-800 px-3 text-sm text-white outline-none"
+              className="h-10 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-950 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
             />
 
-            <div className="flex flex-col">
-              <div className="text-xs text-white/60">Total</div>
-              <div className="text-lg font-extrabold text-emerald-300">
+            <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5">
+              <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                Total
+              </div>
+              <div className="text-base font-extrabold text-emerald-700">
                 {money(total)}
               </div>
             </div>
 
             <Button
               variant="secondary"
-              className="h-9 border border-white/10 bg-slate-800/70 px-3 text-white hover:bg-slate-800"
+              className="h-10 border border-slate-300 bg-white px-3 text-slate-900 hover:bg-slate-100"
               onClick={refresh}
             >
               Refresh
             </Button>
           </div>
         </div>
-      </div>
+      </header>
 
-      <div className="flex-1 min-h-0 p-2 sm:p-3">
-        <Card className="flex min-h-0 h-full flex-col border-white/10 bg-white/5 p-3 sm:p-4 backdrop-blur">
+      <main className="min-h-0 flex-1 p-2 sm:p-3">
+        <Card className="flex h-full min-h-0 flex-col border-slate-200 bg-white p-3 shadow-sm sm:p-4">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <div className="text-base font-extrabold text-white">
+              <div className="text-base font-extrabold text-slate-950">
                 {formatDateTime(new Date(selectedDay), { includeTime: false })}
               </div>
-              <div className="text-xs text-white/60">
-                Completed orders grouped by waiter
+              <div className="text-xs text-slate-500">
+                {groups.length} waiter{groups.length !== 1 ? "s" : ""} •{" "}
+                {orders.length} order{orders.length !== 1 ? "s" : ""}
               </div>
             </div>
 
-            <Badge className="bg-emerald-400 text-slate-950">
+            <Badge className="bg-emerald-600 text-white hover:bg-emerald-600">
               {money(total)}
             </Badge>
           </div>
 
-          <Separator className="my-3 bg-white/10" />
+          <Separator className="my-3 bg-slate-200" />
 
           <ScrollArea className="min-h-0 flex-1 pr-2">
             <div className="flex flex-col gap-3">
               {groups.length === 0 ? (
-                <Card className="border-white/10 bg-white/5 px-3 py-2">
-                  <div className="text-sm text-white/70">
-                    No completed orders found for this day.
+                <Card className="border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-center">
+                  <div className="text-sm font-medium text-slate-700">
+                    No orders found for this day.
+                  </div>
+                  <div className="mt-1 text-xs text-slate-500">
+                    Try another date or press refresh.
                   </div>
                 </Card>
               ) : (
@@ -170,25 +180,26 @@ export default function OrdersHistoryPage() {
               )}
             </div>
           </ScrollArea>
-          <Separator className="my-3 bg-white/10" />
+
+          <Separator className="my-3 bg-slate-200" />
 
           <div className="flex items-center justify-between">
-            <div className="text-sm text-white/60">
+            <div className="text-sm text-slate-500">
               {groups.length} waiter{groups.length !== 1 ? "s" : ""}
             </div>
 
-            <div className="text-lg font-extrabold text-emerald-300">
+            <div className="text-lg font-extrabold text-emerald-700">
               {money(total)}
             </div>
           </div>
         </Card>
-      </div>
+      </main>
     </div>
   );
 }
 
 function WaiterGroupCard({ group }: { group: GroupedOrders }) {
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
 
   const totalItems = group.orders.reduce(
     (sum, row) =>
@@ -197,14 +208,14 @@ function WaiterGroupCard({ group }: { group: GroupedOrders }) {
   );
 
   return (
-    <Card className="border-white/10 bg-white/5 p-4">
+    <Card className="border-slate-200 bg-slate-50 p-3 shadow-sm sm:p-4">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
         className="flex w-full items-center justify-between gap-3 text-left"
       >
-        <div className="flex items-start gap-3">
-          <div className="mt-0.5 text-white/70">
+        <div className="flex min-w-0 items-start gap-3">
+          <div className="mt-0.5 text-slate-500">
             {open ? (
               <ChevronDown className="h-4 w-4" />
             ) : (
@@ -212,21 +223,22 @@ function WaiterGroupCard({ group }: { group: GroupedOrders }) {
             )}
           </div>
 
-          <div>
-            <div className="text-sm font-extrabold text-white">
+          <div className="min-w-0">
+            <div className="truncate text-sm font-extrabold text-slate-950">
               {group.waiterName}
             </div>
-            <div className="text-xs text-white/60">
+            <div className="text-xs text-slate-500">
               {group.orders.length} order{group.orders.length !== 1 ? "s" : ""}{" "}
-              • {totalItems} item{totalItems !== 1 ? "s" : ""} •{" "}
-              {money(group.total)}
+              • {totalItems} item{totalItems !== 1 ? "s" : ""}
             </div>
           </div>
         </div>
 
-        <div className="text-right">
-          <div className="text-xs text-white/60">Waiter Total</div>
-          <div className="text-lg font-extrabold text-emerald-300">
+        <div className="shrink-0 text-right">
+          <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+            Waiter Total
+          </div>
+          <div className="text-lg font-extrabold text-emerald-700">
             {money(group.total)}
           </div>
         </div>
@@ -234,7 +246,7 @@ function WaiterGroupCard({ group }: { group: GroupedOrders }) {
 
       {open ? (
         <>
-          <Separator className="my-2 bg-white/10" />
+          <Separator className="my-3 bg-slate-200" />
 
           <div className="flex flex-col gap-2">
             {group.orders.map(({ order, items }) => (
@@ -267,7 +279,6 @@ function OrderCard({
   }[];
 }) {
   const [open, setOpen] = useState(false);
-
   const { formatDateTime } = useCalendar();
 
   const itemCount = items.reduce(
@@ -275,15 +286,17 @@ function OrderCard({
     0,
   );
 
+  const status = order.status ?? "pending";
+
   return (
-    <Card className="rounded-lg border-white/10 bg-slate-900/70 px-3 py-2">
+    <Card className="rounded-xl border-slate-200 bg-white px-3 py-2 shadow-sm">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
         className="flex w-full items-start justify-between gap-3 text-left"
       >
-        <div className="flex items-start gap-3">
-          <div className="mt-0.5 text-white/70">
+        <div className="flex min-w-0 items-start gap-3">
+          <div className="mt-0.5 text-slate-500">
             {open ? (
               <ChevronDown className="h-4 w-4" />
             ) : (
@@ -291,12 +304,12 @@ function OrderCard({
             )}
           </div>
 
-          <div>
-            <div className="text-sm font-bold text-white">
+          <div className="min-w-0">
+            <div className="text-sm font-bold text-slate-950">
               Order #{order.id.slice(0, 8)}
             </div>
 
-            <div className="mt-1 text-xs text-white/60">
+            <div className="mt-1 text-xs text-slate-500">
               Created:{" "}
               {formatDateTime(new Date(order.created_at), {
                 includeTime: true,
@@ -304,7 +317,7 @@ function OrderCard({
             </div>
 
             {order.completed_at ? (
-              <div className="text-xs text-white/60">
+              <div className="text-xs text-slate-500">
                 Completed:{" "}
                 {formatDateTime(new Date(order.completed_at), {
                   includeTime: true,
@@ -315,14 +328,21 @@ function OrderCard({
             <div className="mt-2 flex flex-wrap gap-2">
               <Badge
                 variant="outline"
-                className="border-white/20 px-2 py-0 text-[10px] text-white/80"
+                className={[
+                  "border px-2 py-0 text-[10px] capitalize",
+                  status === "completed"
+                    ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                    : status === "voided"
+                      ? "border-red-200 bg-red-50 text-red-700"
+                      : "border-amber-200 bg-amber-50 text-amber-700",
+                ].join(" ")}
               >
-                completed
+                {status}
               </Badge>
 
               <Badge
                 variant="outline"
-                className="border-white/20 px-2 py-0 text-[10px] text-white/80"
+                className="border-slate-300 bg-slate-50 px-2 py-0 text-[10px] text-slate-600"
               >
                 {itemCount} items
               </Badge>
@@ -330,11 +350,11 @@ function OrderCard({
           </div>
         </div>
 
-        <div className="text-right">
-          <div className="font-extrabold tabular-nums text-white">
+        <div className="shrink-0 text-right">
+          <div className="font-extrabold tabular-nums text-slate-950">
             {money(Number(order.total_amount))}
           </div>
-          <div className="mt-1 text-[10px] text-white/50">
+          <div className="mt-1 text-[10px] text-slate-500">
             {open ? "Hide details" : "Show details"}
           </div>
         </div>
@@ -342,7 +362,7 @@ function OrderCard({
 
       {open ? (
         <>
-          <Separator className="my-2 bg-white/10" />
+          <Separator className="my-2 bg-slate-200" />
 
           <div className="flex flex-col gap-1.5">
             {items.map((item) => {
@@ -353,25 +373,27 @@ function OrderCard({
               return (
                 <div
                   key={item.id}
-                  className="rounded-xl border border-white/10 bg-slate-900/30 p-3"
+                  className="rounded-xl border border-slate-200 bg-slate-50 p-3"
                 >
                   <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <div className="font-medium text-white">{item.name}</div>
+                    <div className="min-w-0">
+                      <div className="font-medium text-slate-950">
+                        {item.name}
+                      </div>
 
-                      <div className="text-xs text-white/60">
+                      <div className="text-xs text-slate-500">
                         Qty: {qty}
                         {price > 0 ? ` • ${money(price)} each` : ""}
                       </div>
 
                       {item.comment ? (
-                        <div className="mt-1 text-xs text-amber-200">
+                        <div className="mt-1 text-xs font-medium text-amber-700">
                           Note: {item.comment}
                         </div>
                       ) : null}
                     </div>
 
-                    <div className="text-sm font-bold tabular-nums text-white">
+                    <div className="shrink-0 text-sm font-bold tabular-nums text-slate-950">
                       {subtotal > 0 ? money(subtotal) : `${qty}×`}
                     </div>
                   </div>
