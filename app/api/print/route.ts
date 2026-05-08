@@ -4,39 +4,39 @@ import { exec, execFile } from "child_process";
 import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
-  try {
-    const { text } = await req.json();
+    try {
+        const { text } = await req.json();
 
-    console.log("PRINTING FROM SERVER");
+        console.log("PRINTING FROM SERVER");
 
-    exec("hostname", (_err, stdout) => {
-      console.log("HOSTNAME:", stdout.trim());
-    });
+        exec("hostname", (_err, stdout) => {
+            console.log("HOSTNAME:", stdout.trim());
+        });
 
-    const child = execFile(
-      "lp",
-      ["-d", "POS-80"],
-      (error, stdout, stderr) => {
-        if (error) {
-          console.error("print error:", error);
-          return;
-        }
+        const child = execFile(
+            "/usr/bin/lp",
+            ["-d", "POS-80"],
+            (error, stdout, stderr) => {
+                if (error) {
+                    console.error("print error:", error);
+                    return;
+                }
 
-        if (stderr) {
-          console.error("print stderr:", stderr);
-        }
+                if (stderr) {
+                    console.error("print stderr:", stderr);
+                }
 
-        console.log("print stdout:", stdout);
-      },
-    );
+                console.log("print stdout:", stdout);
+            },
+        );
 
-    child.stdin?.write(text);
-    child.stdin?.end();
+        child.stdin?.write(text);
+        child.stdin?.end();
 
-    return NextResponse.json({ success: true });
-  } catch (err) {
-    console.error("route error:", err);
+        return NextResponse.json({ success: true });
+    } catch (err) {
+        console.error("route error:", err);
 
-    return NextResponse.json({ error: "Print failed" }, { status: 500 });
-  }
+        return NextResponse.json({ error: "Print failed" }, { status: 500 });
+    }
 }
