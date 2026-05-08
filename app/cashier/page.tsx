@@ -39,114 +39,57 @@ function createLocalId() {
   );
 }
 
-function printReceipt(order: any) {
-  const win = window.open("", "_blank", "width=400,height=800");
+async function printReceipt(order: any) {
+  const receipt = `
+================================
+           ሶፊ በሶ
+            ኩሽና
+================================
 
-  if (!win) return;
+${
+  order.servingMode === "shared_tray"
+    ? "SHARED TRAY"
+    : "INDIVIDUAL"
+}
 
-  const itemsHtml = order.items
-    .map(
-      (item: any) => `
-        <div style="margin-bottom:14px;">
-          <div style="font-size:22px;font-weight:bold;">
-            ${item.quantity} × ${item.name}
-          </div>
+--------------------------------
 
-          ${
-            item.comment?.trim()
-              ? `
-            <div style="font-size:14px;margin-top:4px;">
-              NOTE: ${item.comment}
-            </div>
-          `
-              : ""
-          }
-        </div>
-      `,
-    )
-    .join("");
+${order.items
+  .map(
+    (item: any) => `
+${item.quantity} x ${item.name}
+${item.comment?.trim() ? `NOTE: ${item.comment}` : ""}
+`,
+  )
+  .join("\n")}
 
-  const html = `
-    <html>
-      <head>
-        <title>Receipt</title>
+--------------------------------
 
-        <style>
-          body {
-            font-family: monospace;
-            padding: 12px;
-            width: 300px;
-          }
+TOTAL: ${order.total}
 
-          .center {
-            text-align: center;
-          }
+WAITER: ${order.waiterName}
 
-          .title {
-            font-size: 32px;
-            font-weight: bold;
-          }
+${new Date(order.createdAt).toLocaleString()}
 
-          .divider {
-            margin: 10px 0;
-            border-top: 2px dashed black;
-          }
 
-          .small {
-            font-size: 14px;
-          }
 
-          .big {
-            font-size: 20px;
-            font-weight: bold;
-          }
-        </style>
-      </head>
 
-      <body>
-        <div class="center title">SOFI BESO</div>
-        <div class="center big">KITCHEN ORDER</div>
 
-        <div class="divider"></div>
 
-        <div class="center big">
-          ${
-            order.servingMode === "shared_tray"
-              ? "SHARED TRAY"
-              : "INDIVIDUAL"
-          }
-        </div>
+`;
 
-        <div class="divider"></div>
-
-        ${itemsHtml}
-
-        <div class="divider"></div>
-
-        <div class="big">TOTAL: ${order.total}</div>
-
-        <br />
-
-        <div>WAITER: ${order.waiterName}</div>
-
-        <div class="small">
-          ${new Date(order.createdAt).toLocaleString()}
-        </div>
-
-        <br /><br /><br />
-      </body>
-    </html>
-  `;
-
-  win.document.write(html);
-  win.document.close();
-
-  win.focus();
-
-  setTimeout(() => {
-    win.print();
-    win.close();
-  }, 500);
+  try {
+    await fetch("/api/print", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ text: receipt }),
+    });
+  } catch (err) {
+    console.error(err);
+    alert("Print failed");
+  }
 }
 
 export default function CashierPage() {
