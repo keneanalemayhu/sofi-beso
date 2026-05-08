@@ -61,7 +61,7 @@ export async function printKitchenReceipt(order: KitchenReceiptOrder) {
 
   await new Promise<void>((resolve, reject) => {
     execFile(
-      "lp",
+      "/usr/bin/lp",
       ["-d", PRINTER_NAME, "-o", "raw", filePath],
       (err, stdout, stderr) => {
         if (err) {
@@ -74,5 +74,5 @@ export async function printKitchenReceipt(order: KitchenReceiptOrder) {
     );
   });
 
-  await fs.unlink(filePath).catch(() => {});
+  await fs.unlink(filePath).catch(() => { });
 }
