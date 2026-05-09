@@ -41,7 +41,7 @@ function createLocalId() {
 
 async function printReceipt(order: any) {
   const canvas = document.createElement("canvas");
-  canvas.width = 576;
+  canvas.width = 512;
   canvas.height = 700;
 
   const ctx = canvas.getContext("2d");
@@ -53,10 +53,10 @@ async function printReceipt(order: any) {
   ctx.fillStyle = "black";
   ctx.textAlign = "center";
   ctx.font = "40px serif";
-  ctx.fillText("ሶፊ ቤሶ", 288, 55);
+  ctx.fillText("ሶፊ ቤሶ", 256, 55);
 
   ctx.font = "24px serif";
-  ctx.fillText("Kitchen Order", 288, 95);
+  ctx.fillText("Kitchen Order", 256, 95);
 
   ctx.textAlign = "left";
   ctx.font = "24px serif";
@@ -96,7 +96,7 @@ async function printReceipt(order: any) {
 
   ctx.textAlign = "center";
   ctx.font = "24px serif";
-  ctx.fillText("እናመሰግናለን", 288, y);
+  ctx.fillText("እናመሰግናለን", 256, y);
 
   const imageBase64 = canvas.toDataURL("image/png");
 
