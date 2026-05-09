@@ -105,7 +105,18 @@ async function printReceipt(order: any) {
   ctx.font = "bold 34px serif";
   ctx.fillStyle = "#000";
 
-  const [timePart, datePart] = order.createdAt.split("፣ ");
+  const separator = "፣ ";
+  const separatorIndex = order.createdAt.indexOf(separator);
+
+  const timePart =
+    separatorIndex !== -1
+      ? order.createdAt.slice(0, separatorIndex)
+      : order.createdAt;
+
+  const datePart =
+    separatorIndex !== -1
+      ? order.createdAt.slice(separatorIndex + separator.length)
+      : "";
 
   ctx.fillText(timePart, 256, y);
 
@@ -159,8 +170,7 @@ export default function CashierPage() {
     error: menuError,
   } = useMenu(search, activeCategory);
 
-  const { cart, total, addToCart, decQty, incQty, updateComment, clearCart } =
-    useCart();
+  const { cart, total, addToCart, decQty, incQty, clearCart } = useCart();
 
   const loadError = menuError || waitersError;
   const loading = menuLoading || waitersLoading;
