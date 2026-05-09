@@ -43,7 +43,7 @@ function createLocalId() {
 async function printReceipt(order: any) {
   const canvas = document.createElement("canvas");
   canvas.width = 512;
-  canvas.height = 900;
+  canvas.height = 650;
 
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Canvas not supported");
@@ -61,15 +61,11 @@ async function printReceipt(order: any) {
   ctx.font = "30px serif";
   ctx.fillText("የኩሽና ትእዛዝ", 256, 105);
 
-  ctx.font = "24px serif";
-  ctx.fillStyle = "#333";
-  ctx.fillText(order.createdAt, 256, 145);
-
   // INFO
   ctx.textAlign = "left";
   ctx.font = "bold 28px serif";
 
-  let y = 205;
+  let y = 165;
 
   ctx.fillText(`አስተናጋጅ: ${order.waiterName}`, 20, y);
   y += 45;
@@ -78,7 +74,7 @@ async function printReceipt(order: any) {
     order.servingMode === "shared_tray" ? "አንድ ላይ" : "የተለያዩ ትእዛዞች";
 
   ctx.fillText(`አቀራረብ: ${servingModeText}`, 20, y);
-  y += 50;
+  y += 38;
 
   ctx.font = "32px monospace";
   ctx.fillText("================================", 10, y);
@@ -93,15 +89,7 @@ async function printReceipt(order: any) {
 
     y += 50;
 
-    if (item.comment?.trim()) {
-      ctx.font = "28px serif";
-
-      ctx.fillText(`ማስታወሻ: ${item.comment}`, 40, y);
-
-      y += 40;
-    }
-
-    y += 20;
+    y += 8;
   }
 
   ctx.font = "32px monospace";
@@ -110,9 +98,21 @@ async function printReceipt(order: any) {
   y += 70;
 
   // FOOTER
+  y += 10;
+
   ctx.textAlign = "center";
-  ctx.font = "30px serif";
-  ctx.fillText("እናመሰግናለን", 256, y);
+
+  ctx.font = "bold 34px serif";
+  ctx.fillStyle = "#000";
+
+  const [timePart, datePart] = order.createdAt.split("፣ ");
+
+  ctx.fillText(timePart, 256, y);
+
+  y += 42;
+
+  ctx.font = "bold 30px serif";
+  ctx.fillText(datePart ?? "", 256, y);
 
   const imageBase64 = canvas.toDataURL("image/png");
 
@@ -602,55 +602,42 @@ export default function CashierPage() {
                         {cart.map((it) => (
                           <Card
                             key={it.menu_item_id}
-                            className="border-slate-200 bg-slate-50 p-3"
+                            className="border-slate-200 bg-slate-50 px-3 py-2"
                           >
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="font-semibold leading-tight text-slate-950">
-                                {it.name}
-                              </div>
-                              <div className="font-extrabold tabular-nums text-slate-950">
-                                {money(it.price * it.quantity)}
-                              </div>
-                            </div>
+                            <div className="flex items-center gap-2">
+                              <div className="min-w-0 flex-1">
+                                <div className="truncate text-sm font-bold text-slate-950">
+                                  {it.name}
+                                </div>
 
-                            <div className="mt-3 flex items-center gap-2">
-                              <Button
-                                variant="secondary"
-                                className="h-12 w-12 border border-slate-300 bg-white p-0 text-lg text-slate-950 hover:bg-slate-100"
-                                onClick={() => decQty(it.menu_item_id)}
-                                disabled={submitting}
-                              >
-                                –
-                              </Button>
-
-                              <div className="w-12 text-center text-lg font-extrabold tabular-nums text-slate-950">
-                                {it.quantity}
+                                <div className="text-xs text-slate-500">
+                                  {money(it.price * it.quantity)}
+                                </div>
                               </div>
 
-                              <Button
-                                variant="secondary"
-                                className="h-12 w-12 border border-slate-300 bg-white p-0 text-lg text-slate-950 hover:bg-slate-100"
-                                onClick={() => incQty(it.menu_item_id)}
-                                disabled={submitting}
-                              >
-                                +
-                              </Button>
+                              <div className="flex items-center gap-1">
+                                <Button
+                                  variant="secondary"
+                                  className="h-8 w-8 border border-slate-300 bg-white p-0 text-base text-slate-950 hover:bg-slate-100"
+                                  onClick={() => decQty(it.menu_item_id)}
+                                  disabled={submitting}
+                                >
+                                  –
+                                </Button>
 
-                              <div className="ml-auto text-xs tabular-nums text-slate-500">
-                                @ {money(it.price)}
+                                <div className="w-8 text-center text-sm font-extrabold tabular-nums text-slate-950">
+                                  {it.quantity}
+                                </div>
+
+                                <Button
+                                  variant="secondary"
+                                  className="h-8 w-8 border border-slate-300 bg-white p-0 text-base text-slate-950 hover:bg-slate-100"
+                                  onClick={() => incQty(it.menu_item_id)}
+                                  disabled={submitting}
+                                >
+                                  +
+                                </Button>
                               </div>
-                            </div>
-
-                            <div className="mt-3">
-                              <Input
-                                value={it.comment}
-                                onChange={(e) =>
-                                  updateComment(it.menu_item_id, e.target.value)
-                                }
-                                placeholder="Note (e.g. no onions)"
-                                disabled={submitting}
-                                className="h-11 border-slate-300 bg-white text-slate-950 placeholder:text-slate-400 focus-visible:ring-teal-500/40"
-                              />
                             </div>
                           </Card>
                         ))}
