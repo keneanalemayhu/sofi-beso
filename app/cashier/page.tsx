@@ -42,7 +42,7 @@ function createLocalId() {
 async function printReceipt(order: any) {
   const canvas = document.createElement("canvas");
   canvas.width = 512;
-  canvas.height = 700;
+  canvas.height = 900;
 
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Canvas not supported");
@@ -51,51 +51,64 @@ async function printReceipt(order: any) {
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   ctx.fillStyle = "black";
+
+  // HEADER
   ctx.textAlign = "center";
-  ctx.font = "40px serif";
-  ctx.fillText("ሶፊ ቤሶ", 256, 55);
-
-  ctx.font = "24px serif";
-  ctx.fillText("Kitchen Order", 256, 95);
-
-  ctx.textAlign = "left";
-  ctx.font = "24px serif";
-
-  let y = 145;
-
-  ctx.fillText(`Order: ${order.orderId.slice(0, 8)}`, 20, y);
-  y += 35;
-  ctx.fillText(`Waiter: ${order.waiterName}`, 20, y);
-  y += 35;
-  ctx.fillText(`Mode: ${order.servingMode}`, 20, y);
-  y += 45;
-
-  ctx.fillText("--------------------------------", 20, y);
-  y += 40;
-
-  for (const item of order.items) {
-    ctx.fillText(`${item.quantity} x ${item.name}`, 20, y);
-    y += 35;
-
-    if (item.comment?.trim()) {
-      ctx.font = "20px serif";
-      ctx.fillText(`NOTE: ${item.comment}`, 40, y);
-      ctx.font = "24px serif";
-      y += 30;
-    }
-
-    y += 10;
-  }
-
-  ctx.fillText("--------------------------------", 20, y);
-  y += 40;
+  ctx.font = "bold 46px serif";
+  ctx.fillText("ሶፊ በሶ", 256, 60);
 
   ctx.font = "30px serif";
-  ctx.fillText(`TOTAL: ${order.total} ብር`, 20, y);
+  ctx.fillText("የኩሽና ትእዛዝ", 256, 105);
+
+  // INFO
+  ctx.textAlign = "left";
+  ctx.font = "bold 28px serif";
+
+  let y = 165;
+
+  ctx.fillText(`አስተናጋጅ: ${order.waiterName}`, 20, y);
+  y += 45;
+
+  const servingModeText =
+    order.servingMode === "shared_tray"
+      ? "አንድ ላይ"
+      : "የተለያዩ ትእዛዞች";
+
+  ctx.fillText(`አቀራረብ: ${servingModeText}`, 20, y);
   y += 50;
 
+  ctx.font = "32px monospace";
+  ctx.fillText("================================", 10, y);
+
+  y += 55;
+
+  // ITEMS
+  for (const item of order.items) {
+    ctx.font = "bold 38px serif";
+
+    ctx.fillText(`${item.quantity} x ${item.name}`, 20, y);
+
+    y += 50;
+
+    if (item.comment?.trim()) {
+      ctx.font = "28px serif";
+
+      ctx.fillText(`ማስታወሻ: ${item.comment}`, 40, y);
+
+      y += 40;
+    }
+
+    y += 20;
+  }
+
+  ctx.font = "32px monospace";
+  ctx.fillText("================================", 10, y);
+
+  y += 70;
+
+  // FOOTER
   ctx.textAlign = "center";
-  ctx.font = "24px serif";
+  ctx.font = "30px serif";
   ctx.fillText("እናመሰግናለን", 256, y);
 
   const imageBase64 = canvas.toDataURL("image/png");
