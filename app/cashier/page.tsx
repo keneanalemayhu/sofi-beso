@@ -100,7 +100,7 @@ async function printReceipt(order: any) {
 
   const imageBase64 = canvas.toDataURL("image/png");
 
-  const res = await fetch("http://localhost:5050/print", {
+  const res = await fetch("https://localhost:5051/print", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
