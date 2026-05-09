@@ -24,6 +24,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import Header from "@/components/common/Header";
+import { useCalendar } from "@/hooks/useCalendar";
 
 function createLocalId() {
   if (
@@ -60,19 +61,21 @@ async function printReceipt(order: any) {
   ctx.font = "30px serif";
   ctx.fillText("የኩሽና ትእዛዝ", 256, 105);
 
+  ctx.font = "24px serif";
+  ctx.fillStyle = "#333";
+  ctx.fillText(order.createdAt, 256, 145);
+
   // INFO
   ctx.textAlign = "left";
   ctx.font = "bold 28px serif";
 
-  let y = 165;
+  let y = 205;
 
   ctx.fillText(`አስተናጋጅ: ${order.waiterName}`, 20, y);
   y += 45;
 
   const servingModeText =
-    order.servingMode === "shared_tray"
-      ? "አንድ ላይ"
-      : "የተለያዩ ትእዛዞች";
+    order.servingMode === "shared_tray" ? "አንድ ላይ" : "የተለያዩ ትእዛዞች";
 
   ctx.fillText(`አቀራረብ: ${servingModeText}`, 20, y);
   y += 50;
@@ -131,6 +134,8 @@ export default function CashierPage() {
   const [search, setSearch] = useState("");
   const [waiterId, setWaiterId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  const { formatDateTime } = useCalendar();
 
   const [ordersOpen, setOrdersOpen] = useState(false);
   const [activeOrders, setActiveOrders] = useState<ActiveOrder[]>([]);
@@ -210,7 +215,7 @@ export default function CashierPage() {
         servingMode,
         items: cart,
         total,
-        createdAt: new Date().toISOString(),
+        createdAt: formatDateTime(new Date(), { includeTime: true }),
       });
 
       clearCart();
@@ -585,7 +590,7 @@ export default function CashierPage() {
 
               <Separator className="my-3 bg-slate-200" />
 
-              <div className="flex min-h-0 flex-1 flex-col gap-3 2xl:grid 2xl:grid-cols-[1fr_300px]">
+              <div className="grid min-h-0 flex-1 grid-cols-[1fr_280px] gap-3">
                 <div className="min-h-0 flex-1 overflow-hidden">
                   <ScrollArea className="h-full pr-2">
                     {cart.length === 0 ? (
@@ -654,7 +659,7 @@ export default function CashierPage() {
                   </ScrollArea>
                 </div>
 
-                <Card className="mt-auto flex flex-col gap-3 border-slate-200 bg-slate-50 p-3 2xl:mt-0 2xl:h-full">
+                <Card className="flex h-full flex-col justify-between gap-3 border-slate-200 bg-slate-50 p-3">
                   <div className="flex-1">
                     <div className="rounded-xl border border-slate-200 bg-white p-3">
                       <div className="flex items-center justify-between text-sm">
