@@ -9,41 +9,56 @@ sofi-beso/
 │   │   │   └── page.tsx
 │   │   └── waiter/
 │   │       └── page.tsx
+│   ├── api/
+│   │   └── print/
+│   │       └── route.ts
 │   ├── cashier/
 │   │   ├── layout.tsx
 │   │   └── page.tsx
-│   ├── kitchen/
-│   │   ├── layout.tsx
-│   │   └── page.tsx
-│   ├── orders/
+│   ├── orders-history/
 │   │   ├── layout.tsx
 │   │   └── page.tsx
 │   ├── favicon.ico
 │   ├── globals.css
 │   ├── layout.tsx
-│   └── page.tsx
+│   ├── page.tsx
+│   └── providers.tsx
 ├── components/
+│   ├── common/
+│   │   └── Header.tsx
+│   ├── context/
+│   │   ├── CalendarModeContext.tsx
+│   │   └── LanguageContext.tsx
 │   └── ui/
 │       ├── badge.tsx
 │       ├── button.tsx
 │       ├── card.tsx
 │       ├── dialog.tsx
+│       ├── dropdown-menu.tsx
 │       ├── input.tsx
 │       ├── scroll-area.tsx
 │       ├── select.tsx
 │       └── separator.tsx
 ├── hooks/
+│   ├── useCalendar.ts
 │   ├── useCart.ts
-│   ├── useKitchenOrders.ts
+│   ├── useCompletedOrdersByDay.ts
 │   ├── useMenu.ts
 │   ├── useOrders.ts
 │   └── useWaiter.ts
 ├── lib/
 │   ├── config.ts
 │   ├── mock-data.ts
+│   ├── mock-history.ts
 │   ├── mock-kitchen.ts
 │   ├── money.ts
+│   ├── print.ts
+│   ├── time.ts
 │   └── utils.ts
+├── public/
+│   ├── fonts/
+│   │   └── entoto.ttf
+│   └── notify.mp3
 ├── types/
 │   ├── cart.ts
 │   ├── category.ts

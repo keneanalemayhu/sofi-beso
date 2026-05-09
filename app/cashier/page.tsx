@@ -46,11 +46,7 @@ async function printReceipt(order: any) {
             ኩሽና
 ================================
 
-${
-  order.servingMode === "shared_tray"
-    ? "SHARED TRAY"
-    : "INDIVIDUAL"
-}
+${order.servingMode === "shared_tray" ? "SHARED TRAY" : "INDIVIDUAL"}
 
 --------------------------------
 
@@ -169,14 +165,8 @@ export default function CashierPage() {
         throw new Error((data as any)?.error || `Order failed (${res.status})`);
       }
 
-      printReceipt({
-        orderId: data.orderId,
-        waiterName:
-          waiters.find((w) => w.id === selectedWaiterId)?.name ?? "Unknown",
-        servingMode,
-        items: cart,
-        total,
-        createdAt: new Date().toISOString(),
+      await fetch(`${API_BASE}/orders/${data.orderId}/print`, {
+        method: "POST",
       });
 
       clearCart();
