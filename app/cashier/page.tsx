@@ -40,51 +40,76 @@ function createLocalId() {
 }
 
 async function printReceipt(order: any) {
-  const receipt = `
-================================
-           ሶፊ በሶ
-            ኩሽና
-================================
+  const canvas = document.createElement("canvas");
+  canvas.width = 576;
+  canvas.height = 700;
 
-${order.servingMode === "shared_tray" ? "SHARED TRAY" : "INDIVIDUAL"}
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Canvas not supported");
 
---------------------------------
+  ctx.fillStyle = "white";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-${order.items
-  .map(
-    (item: any) => `
-${item.quantity} x ${item.name}
-${item.comment?.trim() ? `NOTE: ${item.comment}` : ""}
-`,
-  )
-  .join("\n")}
+  ctx.fillStyle = "black";
+  ctx.textAlign = "center";
+  ctx.font = "40px serif";
+  ctx.fillText("ሶፊ ቤሶ", 288, 55);
 
---------------------------------
+  ctx.font = "24px serif";
+  ctx.fillText("Kitchen Order", 288, 95);
 
-TOTAL: ${order.total}
+  ctx.textAlign = "left";
+  ctx.font = "24px serif";
 
-WAITER: ${order.waiterName}
+  let y = 145;
 
-${new Date(order.createdAt).toLocaleString()}
+  ctx.fillText(`Order: ${order.orderId.slice(0, 8)}`, 20, y);
+  y += 35;
+  ctx.fillText(`Waiter: ${order.waiterName}`, 20, y);
+  y += 35;
+  ctx.fillText(`Mode: ${order.servingMode}`, 20, y);
+  y += 45;
 
+  ctx.fillText("--------------------------------", 20, y);
+  y += 40;
 
+  for (const item of order.items) {
+    ctx.fillText(`${item.quantity} x ${item.name}`, 20, y);
+    y += 35;
 
+    if (item.comment?.trim()) {
+      ctx.font = "20px serif";
+      ctx.fillText(`NOTE: ${item.comment}`, 40, y);
+      ctx.font = "24px serif";
+      y += 30;
+    }
 
+    y += 10;
+  }
 
+  ctx.fillText("--------------------------------", 20, y);
+  y += 40;
 
-`;
+  ctx.font = "30px serif";
+  ctx.fillText(`TOTAL: ${order.total} ብር`, 20, y);
+  y += 50;
 
-  try {
-    await fetch("/api/print", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ text: receipt }),
-    });
-  } catch (err) {
-    console.error(err);
-    alert("Print failed");
+  ctx.textAlign = "center";
+  ctx.font = "24px serif";
+  ctx.fillText("እናመሰግናለን", 288, y);
+
+  const imageBase64 = canvas.toDataURL("image/png");
+
+  const res = await fetch("http://localhost:5050/print", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ imageBase64 }),
+  });
+
+  if (!res.ok) {
+    throw new Error("Local print agent failed");
   }
 }
 
@@ -165,8 +190,14 @@ export default function CashierPage() {
         throw new Error((data as any)?.error || `Order failed (${res.status})`);
       }
 
-      await fetch(`${API_BASE}/orders/${data.orderId}/print`, {
-        method: "POST",
+      await printReceipt({
+        orderId: data.orderId,
+        waiterName:
+          waiters.find((w) => w.id === selectedWaiterId)?.name ?? "Unknown",
+        servingMode,
+        items: cart,
+        total,
+        createdAt: new Date().toISOString(),
       });
 
       clearCart();
