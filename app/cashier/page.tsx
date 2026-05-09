@@ -43,7 +43,11 @@ function createLocalId() {
 async function printReceipt(order: any) {
   const canvas = document.createElement("canvas");
   canvas.width = 512;
-  canvas.height = 650;
+  const itemHeight = 58;
+  const headerHeight = 310;
+  const footerHeight = 150;
+
+  canvas.height = headerHeight + order.items.length * itemHeight + footerHeight;
 
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Canvas not supported");
@@ -87,9 +91,7 @@ async function printReceipt(order: any) {
 
     ctx.fillText(`${item.quantity} x ${item.name}`, 20, y);
 
-    y += 50;
-
-    y += 8;
+    y += itemHeight;
   }
 
   ctx.font = "32px monospace";
@@ -332,7 +334,7 @@ export default function CashierPage() {
                   </Button>
                 </DialogTrigger>
 
-                <DialogContent className="max-w-4xl border-slate-200 bg-white text-slate-950">
+                <DialogContent className="flex max-h-[90vh] max-w-5xl flex-col border-slate-200 bg-white text-slate-950">
                   <DialogHeader>
                     <DialogTitle className="text-slate-950">
                       Active Orders
@@ -360,7 +362,7 @@ export default function CashierPage() {
                     </Button>
                   </div>
 
-                  <div className="min-h-0">
+                  <div className="min-h-0 flex-1 overflow-hidden">
                     {ordersLoading ? (
                       <div className="text-sm text-slate-600">
                         Loading orders...
@@ -370,7 +372,7 @@ export default function CashierPage() {
                         No active orders.
                       </div>
                     ) : (
-                      <ScrollArea className="h-[65vh] pr-2">
+                      <ScrollArea className="h-[72vh] pr-2">
                         <div className="flex flex-col gap-3">
                           {activeOrders.map(({ order, items }) => (
                             <Card
