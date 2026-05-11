@@ -381,7 +381,7 @@ export default function CashierPage() {
                             >
                               <div className="flex items-start justify-between gap-3">
                                 <div className="min-w-0 flex-1">
-                                  <div className="break-words whitespace-normal font-semibold leading-relaxed text-slate-950">
+                                  <div className="wrap-break-word whitespace-normal font-semibold leading-relaxed text-slate-950">
                                     {items.map((i) => (
                                       <div key={i.id}>
                                         {i.quantity}× {i.name}
@@ -425,8 +425,8 @@ export default function CashierPage() {
                                 className="mt-3 h-10 w-full"
                               >
                                 {voidingOrderId === order.id
-                                  ? "Voiding..."
-                                  : "Void Order"}
+                                  ? "በማጥፋት ላይ..."
+                                  : "ትእዛዝ አጥፋ"}
                               </Button>
                             </Card>
                           ))}
