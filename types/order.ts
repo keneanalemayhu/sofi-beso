@@ -14,6 +14,9 @@ export type Order = {
   total_amount: string | number;
   created_at: string;
   completed_at?: string | null;
+  voided_at?: string | null;
+  voided_by?: string | null;
+  void_reason?: string | null;
 };
 
 export type OrderItem = {

@@ -47,8 +47,12 @@ function getTodayString() {
 
 export default function OrdersHistoryPage() {
   const [selectedDay, setSelectedDay] = useState(getTodayString());
-  const { orders, loading, error, refresh } =
-    useCompletedOrdersByDay(selectedDay);
+  const [showVoided, setShowVoided] = useState(false);
+
+  const { orders, loading, error, refresh } = useCompletedOrdersByDay(
+    selectedDay,
+    showVoided,
+  );
 
   const { groups, total } = useMemo(() => {
     const map = new Map<string, GroupedOrders>();
@@ -137,6 +141,19 @@ export default function OrdersHistoryPage() {
               onClick={refresh}
             >
               Refresh
+            </Button>
+
+            <Button
+              variant="secondary"
+              className={[
+                "h-10 border px-3",
+                showVoided
+                  ? "border-red-300 bg-red-50 text-red-700 hover:bg-red-100"
+                  : "border-slate-300 bg-white text-slate-900 hover:bg-slate-100",
+              ].join(" ")}
+              onClick={() => setShowVoided((v) => !v)}
+            >
+              {showVoided ? "Hide voided" : "Show voided"}
             </Button>
           </div>
         </div>

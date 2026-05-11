@@ -2,7 +2,7 @@
 // @/hooks/useCompletedOrdersByDay.ts
 
 "use client";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { API_BASE, USE_MOCK } from "@/lib/config";
 import { mockCompletedOrdersByDay } from "@/lib/mock-history";
 import type { OrderWithItems } from "@/types/order";
@@ -15,111 +15,106 @@ function toDayString(dateLike: string) {
   return `${year}-${month}-${day}`;
 }
 
-function filterOrdersByDay(orders: OrderWithItems[], day: string) {
+function filterOrdersByDay(
+  orders: OrderWithItems[],
+  day: string,
+  includeVoided: boolean,
+) {
   return orders.filter((row) => {
-    const completedAt = row.order.completed_at;
-    if (!completedAt) return false;
-    return toDayString(completedAt) === day;
+    const status = row.order.status ?? "pending";
+
+    if (!includeVoided && status === "voided") {
+      return false;
+    }
+
+    const dateToCheck =
+      status === "voided"
+        ? row.order.voided_at || row.order.created_at
+        : row.order.completed_at || row.order.created_at;
+
+    if (!dateToCheck) return false;
+
+    return toDayString(dateToCheck) === day;
   });
 }
 
 function sortOrders(rows: OrderWithItems[]) {
-  return [...rows].sort(
-    (a, b) =>
-      new Date(b.order.completed_at || 0).getTime() -
-      new Date(a.order.completed_at || 0).getTime()
-  );
+  return [...rows].sort((a, b) => {
+    const aDate =
+      a.order.completed_at || a.order.voided_at || a.order.created_at || 0;
+
+    const bDate =
+      b.order.completed_at || b.order.voided_at || b.order.created_at || 0;
+
+    return new Date(bDate).getTime() - new Date(aDate).getTime();
+  });
 }
 
-export function useCompletedOrdersByDay(day: string) {
-  const [orders, setOrders] = useState<OrderWithItems[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+async function fetchOrdersByDay(day: string, includeVoided: boolean) {
+  if (USE_MOCK) {
+    return sortOrders(
+      filterOrdersByDay(mockCompletedOrdersByDay, day, includeVoided),
+    );
+  }
 
-  const refresh = useCallback(async () => {
+  if (!API_BASE) {
+    throw new Error("Missing NEXT_PUBLIC_API_URL");
+  }
+
+  const params = new URLSearchParams({
+    day,
+    includeVoided: String(includeVoided),
+  });
+
+  const res = await fetch(
+    `${API_BASE}/orders/completed-by-day?${params.toString()}`,
+    {
+      cache: "no-store",
+    },
+  );
+
+  if (!res.ok) {
+    throw new Error(`Completed orders fetch failed (${res.status})`);
+  }
+
+  const data = (await res.json()) as OrderWithItems[];
+  return sortOrders(Array.isArray(data) ? data : []);
+}
+
+export function useCompletedOrdersByDay(day: string, includeVoided = false) {
+  const [orders, setOrders] = useState<OrderWithItems[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [currentKey, setCurrentKey] = useState("");
+
+  const requestedKey = `${day}-${includeVoided}`;
+
+  const loadOrders = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
 
-      if (USE_MOCK) {
-        const filtered = sortOrders(filterOrdersByDay(mockCompletedOrdersByDay, day));
-        setOrders(filtered);
-        return;
-      }
+      const rows = await fetchOrdersByDay(day, includeVoided);
 
-      if (!API_BASE) throw new Error("Missing NEXT_PUBLIC_API_URL");
-
-      const res = await fetch(`${API_BASE}/orders/completed-by-day?day=${day}`, {
-        cache: "no-store",
-      });
-
-      if (!res.ok) {
-        throw new Error(`Completed orders fetch failed (${res.status})`);
-      }
-
-      const data = (await res.json()) as OrderWithItems[];
-      setOrders(sortOrders(Array.isArray(data) ? data : []));
+      setOrders(rows);
+      setCurrentKey(requestedKey);
     } catch (err: any) {
       setError(err?.message || "Failed to load completed orders");
       setOrders([]);
+      setCurrentKey(requestedKey);
     } finally {
       setLoading(false);
     }
-  }, [day]);
+  }, [day, includeVoided, requestedKey]);
 
-  useEffect(() => {
-    let cancelled = false;
-
-    const loadInitial = async () => {
-      try {
-        if (USE_MOCK) {
-          const filtered = sortOrders(filterOrdersByDay(mockCompletedOrdersByDay, day));
-          if (!cancelled) {
-            setOrders(filtered);
-            setError(null);
-          }
-          return;
-        }
-
-        if (!API_BASE) throw new Error("Missing NEXT_PUBLIC_API_URL");
-
-        const res = await fetch(`${API_BASE}/orders/completed-by-day?day=${day}`, {
-          cache: "no-store",
-        });
-
-        if (!res.ok) {
-          throw new Error(`Completed orders fetch failed (${res.status})`);
-        }
-
-        const data = (await res.json()) as OrderWithItems[];
-
-        if (!cancelled) {
-          setOrders(sortOrders(Array.isArray(data) ? data : []));
-          setError(null);
-        }
-      } catch (err: any) {
-        if (!cancelled) {
-          setError(err?.message || "Failed to load completed orders");
-          setOrders([]);
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    };
-
-    void loadInitial();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [day]);
+  if (currentKey !== requestedKey && !loading) {
+    void loadOrders();
+  }
 
   return {
     orders,
-    loading,
+    loading: loading || currentKey !== requestedKey,
     error,
-    refresh,
+    refresh: loadOrders,
   };
 }
