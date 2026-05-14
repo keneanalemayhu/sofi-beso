@@ -294,6 +294,17 @@ export default function CashierPage() {
     }
   }
 
+  const todayOrders = activeOrders.filter((orderData) => {
+    const orderDate = new Date(orderData.order.created_at);
+    const today = new Date();
+
+    return (
+      orderDate.getFullYear() === today.getFullYear() &&
+      orderDate.getMonth() === today.getMonth() &&
+      orderDate.getDate() === today.getDate()
+    );
+  });
+
   return (
     <div className="h-screen overflow-hidden bg-slate-100 text-slate-950">
       <div className="flex h-full min-h-0 flex-col">
@@ -330,7 +341,7 @@ export default function CashierPage() {
                     variant="secondary"
                     className="h-12 border border-slate-300 bg-white px-4 text-slate-900 hover:bg-slate-100"
                   >
-                    ትእዛዞችን አሳይ ({activeOrders.length})
+                    ትእዛዞችን አሳይ ({todayOrders.length})
                   </Button>
                 </DialogTrigger>
 
@@ -374,7 +385,7 @@ export default function CashierPage() {
                     ) : (
                       <ScrollArea className="h-[72vh] pr-2">
                         <div className="flex flex-col gap-3">
-                          {activeOrders.map(({ order, items }) => (
+                          {todayOrders.map(({ order, items }) => (
                             <Card
                               key={order.id}
                               className="border-slate-200 bg-white p-3 shadow-sm"
