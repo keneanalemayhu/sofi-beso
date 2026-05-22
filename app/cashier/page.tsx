@@ -312,7 +312,7 @@ export default function CashierPage() {
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <h1 className="text-xl font-extrabold tracking-tight text-slate-950">
-                Cashier
+                ካሸሪ
               </h1>
             </div>
 
@@ -452,7 +452,7 @@ export default function CashierPage() {
         </header>
 
         <main className="flex-1 min-h-0 overflow-hidden p-3">
-          <section className="grid h-full min-h-0 gap-3 xl:grid-cols-[1.5fr_0.95fr]">
+          <section className="grid h-full min-h-0 gap-3 xl:grid-cols-[1.1fr_0.9fr]">
             <Card className="flex min-h-0 h-full flex-col border-slate-200 bg-white p-3 shadow-sm">
               <div className="shrink-0">
                 <ScrollArea className="w-full whitespace-nowrap">
@@ -615,7 +615,7 @@ export default function CashierPage() {
 
               <Separator className="my-3 bg-slate-200" />
 
-              <div className="grid min-h-0 flex-1 grid-cols-[1fr_280px] gap-3">
+              <div className="flex min-h-0 flex-1 flex-col gap-3">
                 <div className="min-h-0 flex-1 overflow-hidden">
                   <ScrollArea className="h-full pr-2">
                     {cart.length === 0 ? (
@@ -670,21 +670,22 @@ export default function CashierPage() {
                     )}
                   </ScrollArea>
                 </div>
-
-                <Card className="flex h-full flex-col justify-between gap-3 border-slate-200 bg-slate-50 p-3">
-                  <div className="flex-1">
-                    <div className="rounded-xl border border-slate-200 bg-white p-3">
+                <Card className="shrink-0 border-slate-200 bg-slate-50 p-3">
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1 rounded-xl border border-slate-200 bg-white px-4 py-3">
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-slate-600">ምግቦች</span>
+
                         <span className="font-bold tabular-nums text-slate-950">
                           {cart.reduce((sum, item) => sum + item.quantity, 0)}
                         </span>
                       </div>
 
-                      <Separator className="my-3 bg-slate-200" />
+                      <Separator className="my-2 bg-slate-200" />
 
-                      <div className="flex items-center justify-between text-base">
+                      <div className="flex items-center justify-between">
                         <span className="text-slate-600">ጠቅላላ</span>
+
                         <span className="text-2xl font-extrabold tabular-nums text-slate-950">
                           {money(total)}
                         </span>
@@ -696,14 +697,14 @@ export default function CashierPage() {
                       disabled={
                         cart.length === 0 || submitting || !selectedWaiterId
                       }
-                      className="mt-3 h-14 w-full bg-amber-400 text-base font-extrabold text-slate-950 hover:bg-amber-300"
+                      className="h-16 min-w-[220px] bg-amber-400 px-8 text-base font-extrabold text-slate-950 hover:bg-amber-300"
                     >
-                      {submitting ? "Printing..." : "ትእዛዝ ያትሙ"}
+                      {submitting ? "በማተም ላይ..." : "ትእዛዝ ያትሙ"}
                     </Button>
+                  </div>
 
-                    <div className="mt-1 text-center text-xs text-slate-500">
-                      Connected to live API.
-                    </div>
+                  <div className="mt-2 text-center text-xs text-slate-500">
+                    ከAPI ጋር ተገናኝቶአል።
                   </div>
                 </Card>
               </div>
