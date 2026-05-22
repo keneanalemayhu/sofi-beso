@@ -452,8 +452,8 @@ export default function CashierPage() {
         </header>
 
         <main className="flex-1 min-h-0 overflow-hidden p-3">
-          <section className="grid h-full min-h-0 gap-3 xl:grid-cols-[1.1fr_0.9fr]">
-            <Card className="flex min-h-0 h-full flex-col border-slate-200 bg-white p-3 shadow-sm">
+          <section className="grid h-full min-h-0 gap-3 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
+            <Card className="flex min-h-0 min-w-0 h-full flex-col border-slate-200 bg-white p-3 shadow-sm">
               <div className="shrink-0">
                 <ScrollArea className="w-full whitespace-nowrap">
                   <div className="flex gap-2 pb-2">
@@ -523,7 +523,7 @@ export default function CashierPage() {
               </div>
             </Card>
 
-            <Card className="flex min-h-0 flex-1 flex-col border-slate-200 bg-white p-3 shadow-sm">
+            <Card className="flex min-h-0 min-w-0 flex-1 flex-col border-slate-200 bg-white p-3 shadow-sm">
               <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
                 <div className="min-w-0 flex-1">
                   <div className="mb-2">
@@ -697,7 +697,7 @@ export default function CashierPage() {
                       disabled={
                         cart.length === 0 || submitting || !selectedWaiterId
                       }
-                      className="h-16 min-w-[220px] bg-amber-400 px-8 text-base font-extrabold text-slate-950 hover:bg-amber-300"
+                      className="h-16 min-w-55 bg-amber-400 px-8 text-base font-extrabold text-slate-950 hover:bg-amber-300"
                     >
                       {submitting ? "በማተም ላይ..." : "ትእዛዝ ያትሙ"}
                     </Button>
