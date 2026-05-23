@@ -455,8 +455,7 @@ export default function CashierPage() {
           <section className="grid h-full min-h-0 gap-3 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
             <Card className="flex min-h-0 min-w-0 h-full flex-col border-slate-200 bg-white p-3 shadow-sm">
               <div className="shrink-0">
-                <ScrollArea className="w-full whitespace-nowrap">
-                  <div className="flex gap-2 pb-2">
+                <div className="flex flex-wrap gap-2">
                     {categories.map((c) => {
                       const active = activeCategory === c;
 
@@ -477,7 +476,6 @@ export default function CashierPage() {
                       );
                     })}
                   </div>
-                </ScrollArea>
               </div>
 
               <Separator className="my-3 shrink-0 bg-slate-200" />
