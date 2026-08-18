@@ -26,15 +26,37 @@ export type ReceiptOrder = {
   total: number;
   /** Pre-formatted "time፣ date" string from useCalendar. */
   createdAt: string;
-  /** Printed under the title when the restaurant has more than one branch. */
   branchName?: string;
 };
 
+const AGENT_URL = "https://localhost:5051/print";
+const AGENT_TIMEOUT_MS = 2500;
+
 /**
- * Renders the kitchen ticket to a canvas and POSTs it to the tablet's local
- * print agent. Each terminal runs its own agent on :5051.
+ * Which path this terminal prints through. Decided on the first order and
+ * kept for the session — a reload re-probes, so a restarted agent is picked
+ * up without a code change.
  */
-export async function printReceipt(order: ReceiptOrder) {
+let printMode: "unknown" | "agent" | "browser" = "unknown";
+
+function servingModeText(mode: ReceiptOrder["servingMode"]) {
+  return mode === "shared_tray" ? "አንድ ላይ" : "የተለያዩ ትእዛዞች";
+}
+
+function splitCreatedAt(createdAt: string) {
+  const separator = "፣ ";
+  const idx = createdAt.indexOf(separator);
+  return {
+    time: idx !== -1 ? createdAt.slice(0, idx) : createdAt,
+    date: idx !== -1 ? createdAt.slice(idx + separator.length) : "",
+  };
+}
+
+// ============================================================
+// PATH 1 — local print agent (main branch, Ubuntu)
+// ============================================================
+
+function renderCanvas(order: ReceiptOrder): string {
   const canvas = document.createElement("canvas");
   canvas.width = 512;
 
@@ -51,7 +73,6 @@ export async function printReceipt(order: ReceiptOrder) {
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   ctx.fillStyle = "black";
 
-  // HEADER
   ctx.textAlign = "center";
   ctx.font = "bold 46px serif";
   ctx.fillText("ሶፊ በሶ", 256, 60);
@@ -67,24 +88,19 @@ export async function printReceipt(order: ReceiptOrder) {
     y = 205;
   }
 
-  // INFO
   ctx.textAlign = "left";
   ctx.font = "bold 28px serif";
 
   ctx.fillText(`አስተናጋጅ: ${order.waiterName}`, 20, y);
   y += 45;
 
-  const servingModeText =
-    order.servingMode === "shared_tray" ? "አንድ ላይ" : "የተለያዩ ትእዛዞች";
-
-  ctx.fillText(`አቀራረብ: ${servingModeText}`, 20, y);
+  ctx.fillText(`አቀራረብ: ${servingModeText(order.servingMode)}`, 20, y);
   y += 38;
 
   ctx.font = "32px monospace";
   ctx.fillText("================================", 10, y);
   y += 55;
 
-  // ITEMS
   for (const item of order.items) {
     ctx.font = "bold 38px serif";
     ctx.fillText(`${item.quantity} x ${item.name}`, 20, y);
@@ -95,38 +111,167 @@ export async function printReceipt(order: ReceiptOrder) {
   ctx.fillText("================================", 10, y);
   y += 80;
 
-  // FOOTER
+  const { time, date } = splitCreatedAt(order.createdAt);
+
   ctx.textAlign = "center";
   ctx.font = "bold 34px serif";
-
-  const separator = "፣ ";
-  const separatorIndex = order.createdAt.indexOf(separator);
-
-  const timePart =
-    separatorIndex !== -1
-      ? order.createdAt.slice(0, separatorIndex)
-      : order.createdAt;
-
-  const datePart =
-    separatorIndex !== -1
-      ? order.createdAt.slice(separatorIndex + separator.length)
-      : "";
-
-  ctx.fillText(timePart, 256, y);
+  ctx.fillText(time, 256, y);
   y += 42;
 
   ctx.font = "bold 30px serif";
-  ctx.fillText(datePart, 256, y);
+  ctx.fillText(date, 256, y);
 
-  const imageBase64 = canvas.toDataURL("image/png");
+  return canvas.toDataURL("image/png");
+}
 
-  const res = await fetch("https://localhost:5051/print", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ imageBase64 }),
+async function printViaAgent(order: ReceiptOrder): Promise<void> {
+  const imageBase64 = renderCanvas(order);
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), AGENT_TIMEOUT_MS);
+
+  try {
+    const res = await fetch(AGENT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ imageBase64 }),
+      signal: controller.signal,
+    });
+    if (!res.ok) throw new Error("Local print agent failed");
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// ============================================================
+// PATH 2 — OS printer driver via the browser (imperial, Windows)
+// ============================================================
+
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function receiptHtml(order: ReceiptOrder): string {
+  const { time, date } = splitCreatedAt(order.createdAt);
+
+  const rows = order.items
+    .map(
+      (i) =>
+        `<div class="item">${i.quantity} x ${escapeHtml(i.name)}</div>` +
+        (i.comment?.trim()
+          ? `<div class="note">${escapeHtml(i.comment.trim())}</div>`
+          : ""),
+    )
+    .join("");
+
+  // Nyala ships with Windows and covers Ethiopic; Entoto is our bundled font.
+  return `<!doctype html>
+<html><head><meta charset="utf-8">
+<style>
+  @font-face {
+    font-family: 'Entoto';
+    src: url('/fonts/entoto.ttf') format('truetype');
+  }
+  @page { size: 80mm auto; margin: 0; }
+  * { -webkit-print-color-adjust: exact; }
+  body {
+    margin: 0; padding: 4mm 3mm; width: 72mm;
+    font-family: 'Entoto', 'Nyala', 'Abyssinica SIL', serif;
+    color: #000; background: #fff;
+  }
+  .title { text-align: center; font-size: 26px; font-weight: 700; }
+  .sub   { text-align: center; font-size: 16px; margin-top: 2px; }
+  .branch{ text-align: center; font-size: 18px; font-weight: 700; margin-top: 4px; }
+  .info  { font-size: 15px; font-weight: 700; margin-top: 8px; }
+  .rule  { border-top: 1px dashed #000; margin: 8px 0; }
+  .item  { font-size: 21px; font-weight: 700; margin: 5px 0; }
+  .note  { font-size: 14px; margin: 0 0 5px 10px; }
+  .foot  { text-align: center; font-size: 17px; font-weight: 700; }
+  .foot .date { font-size: 15px; margin-top: 3px; }
+</style></head>
+<body>
+  <div class="title">ሶፊ በሶ</div>
+  <div class="sub">የኩሽና ትእዛዝ</div>
+  ${order.branchName ? `<div class="branch">${escapeHtml(order.branchName)}</div>` : ""}
+  <div class="info">አስተናጋጅ: ${escapeHtml(order.waiterName)}</div>
+  <div class="info">አቀራረብ: ${servingModeText(order.servingMode)}</div>
+  <div class="rule"></div>
+  ${rows}
+  <div class="rule"></div>
+  <div class="foot">
+    <div>${escapeHtml(time)}</div>
+    <div class="date">${escapeHtml(date)}</div>
+  </div>
+</body></html>`;
+}
+
+async function printViaBrowser(order: ReceiptOrder): Promise<void> {
+  const iframe = document.createElement("iframe");
+  iframe.style.cssText =
+    "position:fixed;right:0;bottom:0;width:0;height:0;border:0";
+  document.body.appendChild(iframe);
+
+  const doc = iframe.contentDocument;
+  if (!doc) {
+    document.body.removeChild(iframe);
+    throw new Error("Could not open print frame");
+  }
+
+  doc.open();
+  doc.write(receiptHtml(order));
+  doc.close();
+
+  // Wait for the font, or Amharic renders as boxes. Fail open after 1.5s
+  // rather than block the cashier.
+  await new Promise<void>((resolve) => {
+    let settled = false;
+    const done = () => {
+      if (!settled) {
+        settled = true;
+        resolve();
+      }
+    };
+    setTimeout(done, 1500);
+    const fonts = (doc as Document & { fonts?: FontFaceSet }).fonts;
+    if (fonts) fonts.ready.then(done).catch(done);
+    else done();
   });
 
-  if (!res.ok) {
-    throw new Error("Local print agent failed");
+  iframe.contentWindow?.focus();
+  iframe.contentWindow?.print();
+
+  // Removing the frame too early cancels the job.
+  setTimeout(() => {
+    if (iframe.parentNode) document.body.removeChild(iframe);
+  }, 3000);
+}
+
+// ============================================================
+
+/**
+ * Prints a kitchen ticket. Terminals running the local agent use it;
+ * everything else prints through the OS printer driver.
+ */
+export async function printReceipt(order: ReceiptOrder): Promise<void> {
+  if (printMode === "browser") return printViaBrowser(order);
+
+  if (printMode === "agent") {
+    try {
+      return await printViaAgent(order);
+    } catch (err) {
+      // Agent died mid-service — keep printing rather than lose the ticket.
+      console.warn("Print agent failed, falling back to browser print", err);
+      printMode = "browser";
+      return printViaBrowser(order);
+    }
+  }
+
+  // First order this session: find out which path works.
+  try {
+    await printViaAgent(order);
+    printMode = "agent";
+  } catch {
+    printMode = "browser";
+    await printViaBrowser(order);
   }
 }
