@@ -7,10 +7,28 @@ import { getDeviceId } from "@/lib/device";
 
 export class DeviceNotRegisteredError extends Error {
   deviceId: string;
+
   constructor(deviceId: string) {
     super("This device is not registered to a branch.");
     this.name = "DeviceNotRegisteredError";
     this.deviceId = deviceId;
+  }
+}
+
+export class BranchError extends Error {
+  code: string;
+  branchSlug?: string;
+
+  constructor(code: string, branchSlug?: string) {
+    super(
+      code === "UNKNOWN_BRANCH"
+        ? `Unknown branch${branchSlug ? `: ${branchSlug}` : ""}.`
+        : "Could not resolve a branch for this device.",
+    );
+
+    this.name = "BranchError";
+    this.code = code;
+    this.branchSlug = branchSlug;
   }
 }
 
