@@ -3,7 +3,8 @@
 
 "use client";
 import { useCallback, useState } from "react";
-import { API_BASE, USE_MOCK } from "@/lib/config";
+import { USE_MOCK } from "@/lib/config";
+import { apiJson } from "@/lib/api";
 import { mockCompletedOrdersByDay } from "@/lib/mock-history";
 import type { OrderWithItems } from "@/types/order";
 
@@ -57,27 +58,14 @@ async function fetchOrdersByDay(day: string, includeVoided: boolean) {
     );
   }
 
-  if (!API_BASE) {
-    throw new Error("Missing NEXT_PUBLIC_API_URL");
-  }
-
   const params = new URLSearchParams({
     day,
     includeVoided: String(includeVoided),
   });
 
-  const res = await fetch(
-    `${API_BASE}/orders/completed-by-day?${params.toString()}`,
-    {
-      cache: "no-store",
-    },
+  const data = await apiJson<OrderWithItems[]>(
+    `/orders/completed-by-day?${params.toString()}`,
   );
-
-  if (!res.ok) {
-    throw new Error(`Completed orders fetch failed (${res.status})`);
-  }
-
-  const data = (await res.json()) as OrderWithItems[];
   return sortOrders(Array.isArray(data) ? data : []);
 }
 

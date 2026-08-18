@@ -3,7 +3,8 @@
 
 "use client";
 import { useEffect, useState } from "react";
-import { API_BASE, USE_MOCK } from "@/lib/config";
+import { USE_MOCK } from "@/lib/config";
+import { apiJson } from "@/lib/api";
 import { mockWaiters } from "@/lib/mock-data";
 import type { Waiter } from "@/types/waiter";
 
@@ -23,10 +24,7 @@ export function useWaiters() {
           return;
         }
 
-        if (!API_BASE) throw new Error("Missing NEXT_PUBLIC_API_URL");
-        const res = await fetch(`${API_BASE}/waiters`, { cache: "no-store" });
-        if (!res.ok) throw new Error(`Waiters fetch failed (${res.status})`);
-        const data = (await res.json()) as Waiter[];
+        const data = await apiJson<Waiter[]>("/waiters");
         setWaiters(data.filter((w) => w.is_active));
       } catch (e: any) {
         setError(e?.message || "Failed to load waiters");

@@ -3,7 +3,9 @@
 
 "use client";
 import { useState } from "react";
-import { API_BASE, CASHIER_USER_ID } from "@/lib/config";
+import { CASHIER_USER_ID } from "@/lib/config";
+import { apiJson } from "@/lib/api";
+import { getDeviceId } from "@/lib/device";
 import { money } from "@/lib/money";
 import { useWaiters } from "@/hooks/useWaiter";
 import { useMenu } from "@/hooks/useMenu";
@@ -199,7 +201,7 @@ export default function CashierPage() {
         waiter_id: selectedWaiterId,
         created_by: CASHIER_USER_ID,
         serving_mode: servingMode,
-        device_id: "cashier-1",
+        device_id: getDeviceId(),
         local_id: createLocalId(),
         items: cart.map((c) => ({
           menu_item_id: c.menu_item_id,
@@ -208,17 +210,10 @@ export default function CashierPage() {
         })),
       };
 
-      const res = await fetch(`${API_BASE}/orders`, {
+      const data = await apiJson<{ orderId: string }>("/orders", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-
-      const data = await res.json().catch(() => ({}));
-
-      if (!res.ok) {
-        throw new Error((data as any)?.error || `Order failed (${res.status})`);
-      }
 
       await printReceipt({
         orderId: data.orderId,
@@ -244,16 +239,7 @@ export default function CashierPage() {
     setOrdersLoading(true);
 
     try {
-      const res = await fetch(`${API_BASE}/orders/active-with-items`, {
-        cache: "no-store",
-      });
-
-      const data = await res.json().catch(() => []);
-
-      if (!res.ok) {
-        throw new Error((data as any)?.error || "Failed to load orders");
-      }
-
+      const data = await apiJson<ActiveOrder[]>("/orders/active-with-items");
       setActiveOrders(Array.isArray(data) ? data : []);
     } catch (e: any) {
       alert(e?.message || "Failed to load active orders");
@@ -271,20 +257,13 @@ export default function CashierPage() {
     setVoidingOrderId(orderId);
 
     try {
-      const res = await fetch(`${API_BASE}/orders/${orderId}/status`, {
+      await apiJson(`/orders/${orderId}/status`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           status: "voided",
           voided_by: CASHIER_USER_ID,
         }),
       });
-
-      const data = await res.json().catch(() => ({}));
-
-      if (!res.ok) {
-        throw new Error((data as any)?.error || `Void failed (${res.status})`);
-      }
 
       await fetchActiveOrders();
     } catch (e: any) {

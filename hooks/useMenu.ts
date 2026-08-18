@@ -3,7 +3,8 @@
 
 "use client";
 import { useEffect, useMemo, useState } from "react";
-import { API_BASE, USE_MOCK } from "@/lib/config";
+import { USE_MOCK } from "@/lib/config";
+import { apiJson } from "@/lib/api";
 import { mockMenu } from "@/lib/mock-data";
 import type { MenuRow } from "@/types/menu";
 
@@ -23,10 +24,7 @@ export function useMenu(search: string, activeCategory: string) {
           return;
         }
 
-        if (!API_BASE) throw new Error("Missing NEXT_PUBLIC_API_URL");
-        const res = await fetch(`${API_BASE}/menu`, { cache: "no-store" });
-        if (!res.ok) throw new Error(`Menu fetch failed (${res.status})`);
-        const data = (await res.json()) as MenuRow[];
+        const data = await apiJson<MenuRow[]>("/menu");
         setMenu(data.filter((m) => m.is_active));
       } catch (e: any) {
         setError(e?.message || "Failed to load menu");
