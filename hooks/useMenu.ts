@@ -8,7 +8,11 @@ import { apiJson } from "@/lib/api";
 import { mockMenu } from "@/lib/mock-data";
 import type { MenuRow } from "@/types/menu";
 
-export function useMenu(search: string, activeCategory: string) {
+export function useMenu(
+  search: string,
+  activeCategory: string,
+  branchSlug?: string,
+) {
   const [menu, setMenu] = useState<MenuRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -24,7 +28,7 @@ export function useMenu(search: string, activeCategory: string) {
           return;
         }
 
-        const data = await apiJson<MenuRow[]>("/menu");
+        const data = await apiJson<MenuRow[]>("/menu", undefined, branchSlug);
         setMenu(data.filter((m) => m.is_active));
       } catch (e: any) {
         setError(e?.message || "Failed to load menu");
@@ -34,7 +38,7 @@ export function useMenu(search: string, activeCategory: string) {
     };
 
     run();
-  }, []);
+  }, [branchSlug]);
 
   const categories = useMemo(() => {
     const set = new Set<string>();

@@ -5,41 +5,26 @@
 import { API_BASE } from "@/lib/config";
 import { getDeviceId } from "@/lib/device";
 
-export class DeviceNotRegisteredError extends Error {
-  deviceId: string;
-
-  constructor(deviceId: string) {
-    super("This device is not registered to a branch.");
-    this.name = "DeviceNotRegisteredError";
-    this.deviceId = deviceId;
-  }
-}
-
 export class BranchError extends Error {
   code: string;
-  branchSlug?: string;
-
-  constructor(code: string, branchSlug?: string) {
+  slug?: string;
+  constructor(code: string, slug?: string) {
     super(
       code === "UNKNOWN_BRANCH"
-        ? `Unknown branch${branchSlug ? `: ${branchSlug}` : ""}.`
-        : "Could not resolve a branch for this device.",
+        ? `Unknown branch "${slug}".`
+        : "No branch could be determined for this device.",
     );
-
     this.name = "BranchError";
     this.code = code;
-    this.branchSlug = branchSlug;
+    this.slug = slug;
   }
 }
 
-/**
- * fetch with the device id attached. A 428 means the tablet needs pairing
- * to a branch before it can be used.
- */
+/** fetch with device id and branch slug attached. */
 export async function apiFetch(
   path: string,
   init: RequestInit = {},
-  branchSlug?: string
+  branchSlug?: string,
 ) {
   if (!API_BASE) throw new Error("Missing NEXT_PUBLIC_API_BASE");
 
@@ -64,9 +49,12 @@ export async function apiFetch(
   return res;
 }
 
-/** Same, but parses JSON and throws the server's error message. */
-export async function apiJson<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await apiFetch(path, init);
+export async function apiJson<T>(
+  path: string,
+  init?: RequestInit,
+  branchSlug?: string,
+): Promise<T> {
+  const res = await apiFetch(path, init, branchSlug);
   const text = await res.text();
   const data = text ? JSON.parse(text) : null;
 
@@ -84,6 +72,6 @@ export type BranchInfo = {
   slug: string;
 };
 
-export function getBranchInfo() {
-  return apiJson<BranchInfo>("/branches/whoami");
+export function getBranchInfo(branchSlug?: string) {
+  return apiJson<BranchInfo>("/branches/whoami", undefined, branchSlug);
 }

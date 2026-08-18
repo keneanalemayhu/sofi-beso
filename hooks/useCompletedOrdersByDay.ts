@@ -51,7 +51,11 @@ function sortOrders(rows: OrderWithItems[]) {
   });
 }
 
-async function fetchOrdersByDay(day: string, includeVoided: boolean) {
+async function fetchOrdersByDay(
+  day: string,
+  includeVoided: boolean,
+  branchSlug?: string,
+) {
   if (USE_MOCK) {
     return sortOrders(
       filterOrdersByDay(mockCompletedOrdersByDay, day, includeVoided),
@@ -65,24 +69,30 @@ async function fetchOrdersByDay(day: string, includeVoided: boolean) {
 
   const data = await apiJson<OrderWithItems[]>(
     `/orders/completed-by-day?${params.toString()}`,
+    undefined,
+    branchSlug,
   );
   return sortOrders(Array.isArray(data) ? data : []);
 }
 
-export function useCompletedOrdersByDay(day: string, includeVoided = false) {
+export function useCompletedOrdersByDay(
+  day: string,
+  includeVoided = false,
+  branchSlug?: string,
+) {
   const [orders, setOrders] = useState<OrderWithItems[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currentKey, setCurrentKey] = useState("");
 
-  const requestedKey = `${day}-${includeVoided}`;
+  const requestedKey = `${day}-${includeVoided}-${branchSlug ?? ""}`;
 
   const loadOrders = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
 
-      const rows = await fetchOrdersByDay(day, includeVoided);
+      const rows = await fetchOrdersByDay(day, includeVoided, branchSlug);
 
       setOrders(rows);
       setCurrentKey(requestedKey);
@@ -93,7 +103,7 @@ export function useCompletedOrdersByDay(day: string, includeVoided = false) {
     } finally {
       setLoading(false);
     }
-  }, [day, includeVoided, requestedKey]);
+  }, [day, includeVoided, branchSlug, requestedKey]);
 
   if (currentKey !== requestedKey && !loading) {
     void loadOrders();

@@ -8,7 +8,7 @@ import { apiJson } from "@/lib/api";
 import { mockWaiters } from "@/lib/mock-data";
 import type { Waiter } from "@/types/waiter";
 
-export function useWaiters() {
+export function useWaiters(branchSlug?: string) {
   const [waiters, setWaiters] = useState<Waiter[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -24,7 +24,7 @@ export function useWaiters() {
           return;
         }
 
-        const data = await apiJson<Waiter[]>("/waiters");
+        const data = await apiJson<Waiter[]>("/waiters", undefined, branchSlug);
         setWaiters(data.filter((w) => w.is_active));
       } catch (e: any) {
         setError(e?.message || "Failed to load waiters");
@@ -34,7 +34,7 @@ export function useWaiters() {
     };
 
     run();
-  }, []);
+  }, [branchSlug]);
 
   return { waiters, loading, error };
 }
