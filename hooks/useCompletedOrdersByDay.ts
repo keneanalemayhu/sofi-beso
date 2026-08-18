@@ -2,7 +2,7 @@
 // @/hooks/useCompletedOrdersByDay.ts
 
 "use client";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { USE_MOCK } from "@/lib/config";
 import { apiJson } from "@/lib/api";
 import { mockCompletedOrdersByDay } from "@/lib/mock-history";
@@ -80,39 +80,52 @@ export function useCompletedOrdersByDay(
   includeVoided = false,
   branchSlug?: string,
 ) {
-  const [orders, setOrders] = useState<OrderWithItems[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [currentKey, setCurrentKey] = useState("");
+  const [state, setState] = useState<{
+    key: string;
+    orders: OrderWithItems[];
+    error: string | null;
+  }>({ key: "", orders: [], error: null });
 
-  const requestedKey = `${day}-${includeVoided}-${branchSlug ?? ""}`;
+  // Bumped by refresh() so an identical day/branch still refetches.
+  const [reloadToken, setReloadToken] = useState(0);
 
-  const loadOrders = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
+  const requestedKey = `${day}|${includeVoided}|${branchSlug ?? ""}|${reloadToken}`;
 
-      const rows = await fetchOrdersByDay(day, includeVoided, branchSlug);
+  // Loading is derived, never set — so nothing here fires setState
+  // synchronously inside the effect body.
+  const loading = state.key !== requestedKey;
 
-      setOrders(rows);
-      setCurrentKey(requestedKey);
-    } catch (err: any) {
-      setError(err?.message || "Failed to load completed orders");
-      setOrders([]);
-      setCurrentKey(requestedKey);
-    } finally {
-      setLoading(false);
+  useEffect(() => {
+    let cancelled = false;
+
+    async function load() {
+      try {
+        const rows = await fetchOrdersByDay(day, includeVoided, branchSlug);
+        if (!cancelled) setState({ key: requestedKey, orders: rows, error: null });
+      } catch (err: any) {
+        if (!cancelled) {
+          setState({
+            key: requestedKey,
+            orders: [],
+            error: err?.message || "ትእዛዞችን መጫን አልተቻለም።",
+          });
+        }
+      }
     }
+
+    void load();
+
+    return () => {
+      cancelled = true;
+    };
   }, [day, includeVoided, branchSlug, requestedKey]);
 
-  if (currentKey !== requestedKey && !loading) {
-    void loadOrders();
-  }
+  const refresh = useCallback(() => setReloadToken((t) => t + 1), []);
 
   return {
-    orders,
-    loading: loading || currentKey !== requestedKey,
-    error,
-    refresh: loadOrders,
+    orders: state.orders,
+    loading,
+    error: state.error,
+    refresh,
   };
 }

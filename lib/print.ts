@@ -237,8 +237,12 @@ async function printViaBrowser(order: ReceiptOrder): Promise<void> {
     else done();
   });
 
-  iframe.contentWindow?.focus();
-  iframe.contentWindow?.print();
+  const frameWindow = iframe.contentWindow as
+    | (Window & { print: () => void; focus: () => void })
+    | null;
+
+  frameWindow?.focus();
+  frameWindow?.print();
 
   // Removing the frame too early cancels the job.
   setTimeout(() => {
