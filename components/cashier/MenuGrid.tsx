@@ -4,7 +4,7 @@
 import { money } from "@/lib/money";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import type { MenuRow } from "@/types/menu";
 
 type Props = {
@@ -33,30 +33,27 @@ export function MenuGrid({
   return (
     <Card className="flex h-full min-h-0 min-w-0 flex-col gap-0 border-slate-200 bg-white p-0 shadow-sm">
       <div className="shrink-0 border-b border-slate-200 px-2 py-2">
-        <ScrollArea className="w-full whitespace-nowrap">
-          <div className="flex gap-2 pb-1.5">
-            {categories.map((c) => {
-              const active = activeCategory === c;
-              return (
-                <Button
-                  key={c}
-                  type="button"
-                  onClick={() => onCategoryChange(c)}
-                  variant="secondary"
-                  className={[
-                    "h-11 shrink-0 rounded-full border px-4 text-sm font-semibold whitespace-nowrap",
-                    active
-                      ? "border-teal-500 bg-teal-500 text-white hover:bg-teal-600"
-                      : "border-slate-300 bg-white text-slate-700 hover:bg-slate-100",
-                  ].join(" ")}
-                >
-                  {c === "All" ? "ሁሉም" : c}
-                </Button>
-              );
-            })}
-          </div>
-          <ScrollBar orientation="horizontal" />
-        </ScrollArea>
+        <div className="flex flex-wrap gap-2">
+          {categories.map((c) => {
+            const active = activeCategory === c;
+            return (
+              <Button
+                key={c}
+                type="button"
+                onClick={() => onCategoryChange(c)}
+                variant="secondary"
+                className={[
+                  "h-10 rounded-full border px-3.5 text-sm font-semibold whitespace-nowrap",
+                  active
+                    ? "border-teal-500 bg-teal-500 text-white hover:bg-teal-600"
+                    : "border-slate-300 bg-white text-slate-700 hover:bg-slate-100",
+                ].join(" ")}
+              >
+                {c === "All" ? "ሁሉም" : c}
+              </Button>
+            );
+          })}
+        </div>
       </div>
 
       <div className="min-h-0 flex-1">
