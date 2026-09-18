@@ -3,7 +3,7 @@
 
 "use client";
 import { useEffect, useMemo, useState } from "react";
-import { API_BASE, USE_MOCK } from "@/lib/config";
+import { getApiBase, USE_MOCK } from "@/lib/config";
 import type { OrderWithItems } from "@/types/order";
 import { mockOrders } from "@/lib/mock-data";
 
@@ -41,9 +41,10 @@ export function useOrders() {
         return;
       }
 
-      if (!API_BASE) throw new Error("Missing NEXT_PUBLIC_API_URL");
+      const apiBase = getApiBase();
+      if (!apiBase) throw new Error("Missing API base");
 
-      const res = await fetch(`${API_BASE}/orders/with-items`, {
+      const res = await fetch(`${apiBase}/orders/with-items`, {
         cache: "no-store",
       });
 
@@ -74,9 +75,10 @@ export function useOrders() {
           return;
         }
 
-        if (!API_BASE) throw new Error("Missing NEXT_PUBLIC_API_URL");
+        const apiBase = getApiBase();
+        if (!apiBase) throw new Error("Missing API base");
 
-        const res = await fetch(`${API_BASE}/orders/with-items`, {
+        const res = await fetch(`${apiBase}/orders/with-items`, {
           cache: "no-store",
         });
 

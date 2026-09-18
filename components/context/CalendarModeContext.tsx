@@ -23,12 +23,9 @@ const CalendarModeContext = createContext<CalendarModeContextType | undefined>(
 );
 
 function getInitialCalendarMode(): CalendarMode {
-  if (typeof window === "undefined") return "ethiopian";
-
-  const saved = window.localStorage.getItem("sofi-beso-calendar-mode");
-  return saved === "gregorian" || saved === "ethiopian"
-    ? saved
-    : "ethiopian";
+  // Toggle removed from the header — fixed to Ethiopian until/unless
+  // this becomes a real per-branch or per-user setting later.
+  return "ethiopian";
 }
 
 export function CalendarModeProvider({

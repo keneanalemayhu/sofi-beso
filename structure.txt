@@ -13,9 +13,13 @@ sofi-beso/
 │   │   └── print/
 │   │       └── route.ts
 │   ├── cashier/
+│   │   ├── [branch]/
+│   │   │   └── page.tsx
 │   │   ├── layout.tsx
 │   │   └── page.tsx
-│   ├── orders-history/
+│   ├── history/
+│   │   ├── [branch]/
+│   │   │   └── page.tsx
 │   │   ├── layout.tsx
 │   │   └── page.tsx
 │   ├── favicon.ico
@@ -24,11 +28,18 @@ sofi-beso/
 │   ├── page.tsx
 │   └── providers.tsx
 ├── components/
+│   ├── cashier/
+│   │   ├── ActiveOrdersDialog.tsx
+│   │   ├── CartPanel.tsx
+│   │   ├── CashierScreen.tsx
+│   │   └── MenuGrid.tsx
 │   ├── common/
 │   │   └── Header.tsx
 │   ├── context/
 │   │   ├── CalendarModeContext.tsx
 │   │   └── LanguageContext.tsx
+│   ├── history/
+│   │   └── OrdersHistoryScreen.tsx
 │   └── ui/
 │       ├── badge.tsx
 │       ├── button.tsx
@@ -47,7 +58,9 @@ sofi-beso/
 │   ├── useOrders.ts
 │   └── useWaiter.ts
 ├── lib/
+│   ├── api.ts
 │   ├── config.ts
+│   ├── device.ts
 │   ├── mock-data.ts
 │   ├── mock-history.ts
 │   ├── mock-kitchen.ts
@@ -68,6 +81,7 @@ sofi-beso/
 │   └── waiter.ts
 ├── .env.local
 ├── .gitignore
+├── Caddyfile
 ├── components.json
 ├── eslint.config.mjs
 ├── next-env.d.ts

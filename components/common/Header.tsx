@@ -3,56 +3,48 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CalendarDays } from "lucide-react";
-import { useCalendar } from "@/hooks/useCalendar";
-import { useCalendarMode } from "@/components/context/CalendarModeContext";
+import { useRouter, usePathname } from "next/navigation";
+import { Store } from "lucide-react";
+import { setBranch, type Branch } from "@/lib/config";
+
+const BRANCH_LABELS: Record<Branch, string> = {
+  main: "Main",
+  imperial: "Imperial",
+};
+
+function branchFromPathname(pathname: string): Branch {
+  return pathname.startsWith("/cashier/imperial") ? "imperial" : "main";
+}
 
 const Header = () => {
-  const { calendarMode } = useCalendar();
-  const { toggleCalendarMode } = useCalendarMode();
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [now, setNow] = useState(() => new Date());
+  const router = useRouter();
+  const pathname = usePathname();
+  const [branch, setBranchState] = useState<Branch>(() =>
+    branchFromPathname(pathname),
+  );
 
   useEffect(() => {
-    const id = window.setInterval(() => {
-      setNow(new Date());
-    }, 60_000);
+    setBranchState(branchFromPathname(pathname));
+  }, [pathname]);
 
-    return () => window.clearInterval(id);
-  }, []);
+  function handleChange(next: Branch) {
+    setBranch(next);
+    router.push(next === "main" ? "/cashier" : `/cashier/${next}`);
+  }
 
   return (
-    <button
-      type="button"
-      onClick={toggleCalendarMode}
-      className="flex h-9 items-center gap-2 rounded-md border border-white/10 bg-slate-800/70 px-3 text-white hover:bg-slate-800"
-    >
-      {/* Clock icon */}
-      <CalendarDays className="h-4 w-4 text-amber-300" />
+    <div className="flex h-9 items-center gap-2 rounded-md border border-white/10 bg-slate-800/70 px-3 text-white">
+      <Store className="h-4 w-4 text-amber-300" />
 
-      {/* Toggle */}
-      <div className="flex items-center rounded-full bg-white/10 p-0.5 text-[10px] font-semibold">
-        <span
-          className={`px-2 py-0.5 rounded-full transition ${
-            calendarMode === "ethiopian"
-              ? "bg-amber-400 text-slate-900"
-              : "text-white/60"
-          }`}
-        >
-          ET
-        </span>
-
-        <span
-          className={`px-2 py-0.5 rounded-full transition ${
-            calendarMode === "gregorian"
-              ? "bg-amber-400 text-slate-900"
-              : "text-white/60"
-          }`}
-        >
-          GR
-        </span>
-      </div>
-    </button>
+      <select
+        value={branch}
+        onChange={(e) => handleChange(e.target.value as Branch)}
+        className="bg-transparent text-[12px] font-semibold text-white outline-none [&>option]:bg-slate-800 [&>option]:text-white"
+      >
+        <option value="main">{BRANCH_LABELS.main}</option>
+        <option value="imperial">{BRANCH_LABELS.imperial}</option>
+      </select>
+    </div>
   );
 };
 

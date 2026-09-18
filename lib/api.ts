@@ -2,7 +2,7 @@
 // @/lib/api.ts
 
 "use client";
-import { API_BASE } from "@/lib/config";
+import { getApiBase } from "@/lib/config";
 import { getDeviceId } from "@/lib/device";
 
 export class BranchError extends Error {
@@ -26,9 +26,10 @@ export async function apiFetch(
   init: RequestInit = {},
   branchSlug?: string,
 ) {
-  if (!API_BASE) throw new Error("Missing NEXT_PUBLIC_API_BASE");
+  const apiBase = getApiBase();
+  if (!apiBase) throw new Error("Missing API base");
 
-  const res = await fetch(`${API_BASE}${path}`, {
+  const res = await fetch(`${apiBase}${path}`, {
     cache: "no-store",
     ...init,
     headers: {
@@ -40,8 +41,14 @@ export async function apiFetch(
   });
 
   if (res.status === 428 || res.status === 404) {
-    const body = await res.clone().json().catch(() => ({}));
-    if (body?.error === "UNKNOWN_BRANCH" || body?.error === "BRANCH_NOT_RESOLVED") {
+    const body = await res
+      .clone()
+      .json()
+      .catch(() => ({}));
+    if (
+      body?.error === "UNKNOWN_BRANCH" ||
+      body?.error === "BRANCH_NOT_RESOLVED"
+    ) {
       throw new BranchError(body.error, branchSlug);
     }
   }
