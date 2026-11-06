@@ -29,6 +29,9 @@ pull() {
 pull
 npm ci
 npm run build
-pm2 reload sofi-beso-frontend --update-env
+# --update-env copies this shell's environment into the app. Set PORT
+# explicitly, so a PORT exported in this shell (e.g. after sourcing another
+# app's .env) can never move the app onto the wrong port.
+PORT=3000 pm2 reload sofi-beso-frontend --update-env
 
 pm2 list
