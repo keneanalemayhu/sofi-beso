@@ -20,6 +20,13 @@ import { CartPanel } from "@/components/cashier/CartPanel";
 import { ActiveOrdersDialog } from "@/components/cashier/ActiveOrdersDialog";
 import type { ActiveOrder } from "@/types";
 
+/** What POST /orders returns. order/items are missing on older backends. */
+type CreatedOrder = {
+  orderId: string;
+  order?: ActiveOrder["order"];
+  items?: ActiveOrder["items"];
+};
+
 export function CashierScreen({ branchSlug }: { branchSlug: string }) {
   const [activeCategory, setActiveCategory] = useState("All");
   const [search, setSearch] = useState("");
@@ -43,6 +50,10 @@ export function CashierScreen({ branchSlug }: { branchSlug: string }) {
   );
 
   const searchRef = useRef<HTMLInputElement>(null);
+
+  // One local id per cart. A retry after a dropped connection reuses it, so
+  // the server returns the order it already saved instead of a second one.
+  const localIdRef = useRef<string | null>(null);
 
   const sectionRef = useRef<HTMLElement>(null);
 
@@ -116,6 +127,11 @@ export function CashierScreen({ branchSlug }: { branchSlug: string }) {
     setComment,
   } = useCart();
 
+  // Any change to the cart makes it a different order, so it gets a new id.
+  useEffect(() => {
+    localIdRef.current = null;
+  }, [cart]);
+
   const notify = useCallback((msg: string, tone: "ok" | "err" = "ok") => {
     setToast({ msg, tone });
     window.setTimeout(() => setToast(null), 2800);
@@ -168,12 +184,27 @@ export function CashierScreen({ branchSlug }: { branchSlug: string }) {
     }
   }, [branchSlug, notify]);
 
+  // Refresh without the dialog spinner or an error toast.
+  const refreshQuietly = useCallback(async () => {
+    try {
+      const data = await apiJson<ActiveOrder[]>(
+        "/orders/active-with-items",
+        undefined,
+        branchSlug,
+      );
+      setActiveOrders(Array.isArray(data) ? data : []);
+    } catch {
+      // A stale list is not worth a toast.
+    }
+  }, [branchSlug]);
+
   // Background poll for the header badge. Every setState here happens inside
   // an async callback after an await — never synchronously in the effect body.
   useEffect(() => {
     let cancelled = false;
 
     async function loadQuietly() {
+      if (document.hidden) return;
       try {
         const data = await apiJson<ActiveOrder[]>(
           "/orders/active-with-items",
@@ -222,14 +253,17 @@ export function CashierScreen({ branchSlug }: { branchSlug: string }) {
     }
     if (cart.length === 0) return;
 
+    localIdRef.current ??= createLocalId();
+
     setSubmitting(true);
+    let saved: CreatedOrder;
     try {
       const payload = {
         waiter_id: selectedWaiterId,
         created_by: CASHIER_USER_ID,
         serving_mode: servingMode,
         device_id: getDeviceId(),
-        local_id: createLocalId(),
+        local_id: localIdRef.current,
         items: cart.map((c) => ({
           menu_item_id: c.menu_item_id,
           quantity: c.quantity,
@@ -237,31 +271,54 @@ export function CashierScreen({ branchSlug }: { branchSlug: string }) {
         })),
       };
 
-      const data = await apiJson<{ orderId: string }>(
+      saved = await apiJson<CreatedOrder>(
         "/orders",
         { method: "POST", body: JSON.stringify(payload) },
         branchSlug,
       );
-
-      await printReceipt({
-        orderId: data.orderId,
-        waiterName:
-          waiters.find((w) => w.id === selectedWaiterId)?.name ?? "ያልታወቀ",
-        servingMode,
-        items: cart,
-        total,
-        createdAt: formatDateTime(new Date(), { includeTime: true }),
-        branchName: branch?.branch_name,
-      });
-
-      clearCart();
-      setServingMode("individual");
-      setCartOpen(false);
-      setSearch("");
-      notify("ትእዛዝ ተልኮአል።");
-      await fetchActiveOrders();
     } catch (e: any) {
-      notify(e?.message || "ትእዛዝ መላክ አልተቻለም።", "err");
+      // Not saved (or we cannot tell): keep the cart and the local id so
+      // pressing send again is safe.
+      setSubmitting(false);
+      return notify(e?.message || "ትእዛዝ መላክ አልተቻለም።", "err");
+    }
+
+    // Saved. From here on the cart must be cleared even if printing fails,
+    // otherwise sending it again would create a second order.
+    const ticket = {
+      orderId: saved.orderId,
+      waiterName:
+        waiters.find((w) => w.id === selectedWaiterId)?.name ?? "ያልታወቀ",
+      servingMode,
+      items: cart,
+      total,
+      createdAt: formatDateTime(new Date(), { includeTime: true }),
+      branchName: branch?.branch_name,
+    };
+
+    clearCart();
+    setServingMode("individual");
+    setCartOpen(false);
+    setSearch("");
+
+    // Add the new order to the list from the response instead of
+    // downloading every order of the day again.
+    if (saved.order && saved.items) {
+      const savedId = saved.orderId;
+      const row = { order: saved.order, items: saved.items } as ActiveOrder;
+      setActiveOrders((prev) => [
+        row,
+        ...prev.filter((o) => o.order.id !== savedId),
+      ]);
+    } else {
+      void refreshQuietly();
+    }
+
+    try {
+      await printReceipt(ticket);
+      notify("ትእዛዝ ተልኮአል።");
+    } catch {
+      notify("ትእዛዝ ተልኮአል፤ ግን ማተም አልተቻለም።", "err");
     } finally {
       setSubmitting(false);
     }
@@ -286,7 +343,8 @@ export function CashierScreen({ branchSlug }: { branchSlug: string }) {
         branchSlug,
       );
       notify("ትእዛዝ ጠፍቶአል።");
-      await fetchActiveOrders();
+      // Voided orders leave today's list; no need to download it again.
+      setActiveOrders((prev) => prev.filter((o) => o.order.id !== orderId));
     } catch (e: any) {
       notify(e?.message || "ትእዛዝ ማጥፋት አልተቻለም።", "err");
     } finally {
