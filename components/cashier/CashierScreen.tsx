@@ -28,7 +28,9 @@ type CreatedOrder = {
 };
 
 export function CashierScreen({ branchSlug }: { branchSlug: string }) {
-  const [activeCategory, setActiveCategory] = useState("All");
+  // null until the cashier picks a section: then "most ordered" if there is
+  // one, otherwise "All".
+  const [chosenCategory, setChosenCategory] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [waiterId, setWaiterId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -112,10 +114,11 @@ export function CashierScreen({ branchSlug }: { branchSlug: string }) {
   } = useWaiters(branchSlug);
   const {
     categories,
+    activeCategory,
     filteredMenu,
     loading: menuLoading,
     error: menuError,
-  } = useMenu(search, activeCategory, branchSlug);
+  } = useMenu(search, chosenCategory, branchSlug);
   const {
     cart,
     total,
@@ -132,9 +135,16 @@ export function CashierScreen({ branchSlug }: { branchSlug: string }) {
     localIdRef.current = null;
   }, [cart]);
 
+  // Each toast gets its full time on screen: a newer one cancels the older
+  // one's timer (a print error can arrive just after "order sent").
+  const toastTimerRef = useRef<number | null>(null);
   const notify = useCallback((msg: string, tone: "ok" | "err" = "ok") => {
     setToast({ msg, tone });
-    window.setTimeout(() => setToast(null), 2800);
+    if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current);
+    toastTimerRef.current = window.setTimeout(
+      () => setToast(null),
+      tone === "err" ? 5000 : 2800,
+    );
   }, []);
 
   useEffect(() => {
@@ -285,15 +295,13 @@ export function CashierScreen({ branchSlug }: { branchSlug: string }) {
 
     // Saved. From here on the cart must be cleared even if printing fails,
     // otherwise sending it again would create a second order.
+    const waiterName =
+      waiters.find((w) => w.id === selectedWaiterId)?.name ?? "ያልታወቀ";
     const ticket = {
       orderId: saved.orderId,
-      waiterName:
-        waiters.find((w) => w.id === selectedWaiterId)?.name ?? "ያልታወቀ",
-      servingMode,
+      waiterName,
       items: cart,
-      total,
       createdAt: formatDateTime(new Date(), { includeTime: true }),
-      branchName: branch?.branch_name,
     };
 
     clearCart();
@@ -314,14 +322,14 @@ export function CashierScreen({ branchSlug }: { branchSlug: string }) {
       void refreshQuietly();
     }
 
-    try {
-      await printReceipt(ticket);
-      notify("ትእዛዝ ተልኮአል።");
-    } catch {
-      notify("ትእዛዝ ተልኮአል፤ ግን ማተም አልተቻለም።", "err");
-    } finally {
-      setSubmitting(false);
-    }
+    // The order is saved: the cashier can take the next one right away.
+    // The ticket prints in the background (tickets print in order); only a
+    // failure is reported, with the waiter's name so they know which one.
+    setSubmitting(false);
+    notify("ትእዛዝ ተልኮአል።");
+    printReceipt(ticket).catch(() => {
+      notify(`ትእዛዝ ተልኮአል፤ ግን ማተም አልተቻለም። (${waiterName})`, "err");
+    });
   }
 
   async function voidOrder(orderId: string) {
@@ -438,7 +446,7 @@ export function CashierScreen({ branchSlug }: { branchSlug: string }) {
           <MenuGrid
             categories={categories}
             activeCategory={activeCategory}
-            onCategoryChange={setActiveCategory}
+            onCategoryChange={setChosenCategory}
             items={filteredMenu}
             cartQty={cartQty}
             loading={loading}

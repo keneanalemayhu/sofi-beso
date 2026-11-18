@@ -21,125 +21,199 @@ export function createLocalId(): string {
 export type ReceiptOrder = {
   orderId: string;
   waiterName: string;
-  servingMode: "individual" | "shared_tray";
   items: CartItem[];
-  total: number;
-  /** Pre-formatted "time፣ date" string from useCalendar. */
+  /** "time፣ date" (or "time, date") string from useCalendar.formatDateTime. */
   createdAt: string;
-  branchName?: string;
 };
 
-const AGENT_URL = "https://localhost:5051/print";
-const AGENT_TIMEOUT_MS = 2500;
+const AGENT_BASE = "https://localhost:5051";
+/** How long to wait for the agent to answer "are you there?". */
+const AGENT_PROBE_TIMEOUT_MS = 1000;
+/** How long a print may take before we stop waiting (printing runs in the background). */
+const AGENT_PRINT_TIMEOUT_MS = 20000;
+/** After finding no agent, check again at most this often. */
+const AGENT_REPROBE_MS = 60000;
 
 /**
- * Which path this terminal prints through. Decided on the first order and
- * kept for the session — a reload re-probes, so a restarted agent is picked
- * up without a code change.
+ * Which path this terminal prints through. Terminals running the local print
+ * agent (main branch, Ubuntu) use it; others print through the browser and
+ * the OS printer driver (imperial, Windows).
  */
 let printMode: "unknown" | "agent" | "browser" = "unknown";
+let lastProbeAt = 0;
 
-function servingModeText(mode: ReceiptOrder["servingMode"]) {
-  return mode === "shared_tray" ? "አንድ ላይ" : "የተለያዩ ትእዛዞች";
+/**
+ * "05:24 AM፣ ረቡዕ፣ ህዳር 9 2019" → "ረቡዕ፣ ህዳር 9 2019  05:24":
+ * date and time on one line, without AM/PM.
+ */
+export function ticketDateTime(createdAt: string): string {
+  const match = createdAt.match(/^(.*?)(?:፣ |, )(.*)$/);
+  const time = (match ? match[1] : createdAt)
+    .replace(/\s*(AM|PM|am|pm)\s*$/, "")
+    .trim();
+  const date = match ? match[2].trim() : "";
+  return date ? `${date}  ${time}` : time;
 }
 
-function splitCreatedAt(createdAt: string) {
-  const separator = "፣ ";
-  const idx = createdAt.indexOf(separator);
-  return {
-    time: idx !== -1 ? createdAt.slice(0, idx) : createdAt,
-    date: idx !== -1 ? createdAt.slice(idx + separator.length) : "",
-  };
+// ============================================================
+// Ticket layout: waiter, items (with notes), date and time.
+// ============================================================
+
+const WIDTH = 512; // printable dots on an 80 mm printer
+const MARGIN = 16;
+const WAITER_FONT = "bold 34px serif";
+const ITEM_FONT = "bold 38px serif";
+const NOTE_FONT = "28px serif";
+const DATE_FONT_SIZE = 28;
+
+/** Splits text into lines that fit `maxWidth` with the context's current font. */
+function wrap(ctx: CanvasRenderingContext2D, text: string, maxWidth: number) {
+  const words = text.split(/\s+/).filter(Boolean);
+  const lines: string[] = [];
+  let line = "";
+  for (const word of words) {
+    const next = line ? `${line} ${word}` : word;
+    if (line && ctx.measureText(next).width > maxWidth) {
+      lines.push(line);
+      line = word;
+    } else {
+      line = next;
+    }
+  }
+  if (line) lines.push(line);
+  return lines.length ? lines : [""];
+}
+
+type Line = { text: string; font: string; height: number; x: number };
+
+function layoutTicket(ctx: CanvasRenderingContext2D, order: ReceiptOrder) {
+  const lines: Line[] = [];
+  const usable = WIDTH - MARGIN * 2;
+
+  ctx.font = WAITER_FONT;
+  for (const text of wrap(ctx, order.waiterName, usable)) {
+    lines.push({ text, font: WAITER_FONT, height: 46, x: MARGIN });
+  }
+  lines.push({ text: "", font: WAITER_FONT, height: 14, x: MARGIN });
+
+  for (const item of order.items) {
+    ctx.font = ITEM_FONT;
+    const itemLines = wrap(ctx, `${item.quantity} x ${item.name}`, usable);
+    itemLines.forEach((text, i) =>
+      lines.push({ text, font: ITEM_FONT, height: 52, x: i ? MARGIN + 40 : MARGIN }),
+    );
+
+    const note = item.comment?.trim();
+    if (note) {
+      ctx.font = NOTE_FONT;
+      for (const text of wrap(ctx, note, usable - 40)) {
+        lines.push({ text, font: NOTE_FONT, height: 38, x: MARGIN + 40 });
+      }
+    }
+    lines.push({ text: "", font: ITEM_FONT, height: 8, x: MARGIN });
+  }
+
+  // Date and time on one line, shrunk if needed so it never wraps.
+  const dateText = ticketDateTime(order.createdAt);
+  let size = DATE_FONT_SIZE;
+  ctx.font = `bold ${size}px serif`;
+  while (size > 18 && ctx.measureText(dateText).width > usable) {
+    size -= 2;
+    ctx.font = `bold ${size}px serif`;
+  }
+  lines.push({ text: "", font: ctx.font, height: 10, x: MARGIN });
+  lines.push({ text: dateText, font: `bold ${size}px serif`, height: size + 14, x: MARGIN });
+
+  return lines;
+}
+
+function renderCanvas(order: ReceiptOrder): string {
+  const canvas = document.createElement("canvas");
+  canvas.width = WIDTH;
+
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Canvas not supported");
+
+  const lines = layoutTicket(ctx, order);
+  const top = 12;
+  const bottom = 12;
+  // Resizing the canvas resets its state, so lay out first, then size, then draw.
+  canvas.height = top + lines.reduce((h, l) => h + l.height, 0) + bottom;
+
+  ctx.fillStyle = "white";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = "black";
+  ctx.textAlign = "left";
+  ctx.textBaseline = "alphabetic";
+
+  let y = top;
+  for (const line of lines) {
+    y += line.height;
+    if (!line.text) continue;
+    ctx.font = line.font;
+    // Baseline a little above the bottom of the line box.
+    ctx.fillText(line.text, line.x, y - Math.round(line.height * 0.22));
+  }
+
+  return canvas.toDataURL("image/png");
 }
 
 // ============================================================
 // PATH 1 — local print agent (main branch, Ubuntu)
 // ============================================================
 
-function renderCanvas(order: ReceiptOrder): string {
-  const canvas = document.createElement("canvas");
-  canvas.width = 512;
-
-  const itemHeight = 58;
-  const headerHeight = order.branchName ? 350 : 310;
-  const footerHeight = 150;
-
-  canvas.height = headerHeight + order.items.length * itemHeight + footerHeight;
-
-  const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error("Canvas not supported");
-
-  ctx.fillStyle = "white";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.fillStyle = "black";
-
-  ctx.textAlign = "center";
-  ctx.font = "bold 46px serif";
-  ctx.fillText("ሶፊ በሶ", 256, 60);
-
-  ctx.font = "30px serif";
-  ctx.fillText("የኩሽና ትእዛዝ", 256, 105);
-
-  let y = 165;
-
-  if (order.branchName) {
-    ctx.font = "bold 32px serif";
-    ctx.fillText(order.branchName, 256, 145);
-    y = 205;
+async function fetchWithTimeout(url: string, init: RequestInit, ms: number) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), ms);
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
   }
-
-  ctx.textAlign = "left";
-  ctx.font = "bold 28px serif";
-
-  ctx.fillText(`አስተናጋጅ: ${order.waiterName}`, 20, y);
-  y += 45;
-
-  ctx.fillText(`አቀራረብ: ${servingModeText(order.servingMode)}`, 20, y);
-  y += 38;
-
-  ctx.font = "32px monospace";
-  ctx.fillText("================================", 10, y);
-  y += 55;
-
-  for (const item of order.items) {
-    ctx.font = "bold 38px serif";
-    ctx.fillText(`${item.quantity} x ${item.name}`, 20, y);
-    y += itemHeight;
-  }
-
-  ctx.font = "32px monospace";
-  ctx.fillText("================================", 10, y);
-  y += 80;
-
-  const { time, date } = splitCreatedAt(order.createdAt);
-
-  ctx.textAlign = "center";
-  ctx.font = "bold 34px serif";
-  ctx.fillText(time, 256, y);
-  y += 42;
-
-  ctx.font = "bold 30px serif";
-  ctx.fillText(date, 256, y);
-
-  return canvas.toDataURL("image/png");
 }
+
+async function agentIsUp(): Promise<boolean> {
+  try {
+    const res = await fetchWithTimeout(
+      `${AGENT_BASE}/health`,
+      { cache: "no-store" },
+      AGENT_PROBE_TIMEOUT_MS,
+    );
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+/** Thrown when the agent could not be reached at all (not running). */
+class AgentUnreachable extends Error {}
 
 async function printViaAgent(order: ReceiptOrder): Promise<void> {
   const imageBase64 = renderCanvas(order);
 
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), AGENT_TIMEOUT_MS);
-
+  let res: Response;
   try {
-    const res = await fetch(AGENT_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ imageBase64 }),
-      signal: controller.signal,
-    });
-    if (!res.ok) throw new Error("Local print agent failed");
-  } finally {
-    clearTimeout(timer);
+    res = await fetchWithTimeout(
+      `${AGENT_BASE}/print`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imageBase64 }),
+      },
+      AGENT_PRINT_TIMEOUT_MS,
+    );
+  } catch (err) {
+    // A timeout means the agent took the job but the printer is slow or
+    // stuck: printing again elsewhere could give the kitchen two tickets.
+    if ((err as Error)?.name === "AbortError") {
+      throw new Error("The printer did not finish in time");
+    }
+    throw new AgentUnreachable("Print agent is not running");
+  }
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error((body as { error?: string })?.error || "Printer error");
   }
 }
 
@@ -152,8 +226,6 @@ function escapeHtml(s: string): string {
 }
 
 function receiptHtml(order: ReceiptOrder): string {
-  const { time, date } = splitCreatedAt(order.createdAt);
-
   const rows = order.items
     .map(
       (i) =>
@@ -175,33 +247,19 @@ function receiptHtml(order: ReceiptOrder): string {
   @page { size: 80mm auto; margin: 0; }
   * { -webkit-print-color-adjust: exact; }
   body {
-    margin: 0; padding: 4mm 3mm; width: 72mm;
+    margin: 0; padding: 3mm 3mm; width: 72mm;
     font-family: 'Entoto', 'Nyala', 'Abyssinica SIL', serif;
     color: #000; background: #fff;
   }
-  .title { text-align: center; font-size: 26px; font-weight: 700; }
-  .sub   { text-align: center; font-size: 16px; margin-top: 2px; }
-  .branch{ text-align: center; font-size: 18px; font-weight: 700; margin-top: 4px; }
-  .info  { font-size: 15px; font-weight: 700; margin-top: 8px; }
-  .rule  { border-top: 1px dashed #000; margin: 8px 0; }
-  .item  { font-size: 21px; font-weight: 700; margin: 5px 0; }
-  .note  { font-size: 14px; margin: 0 0 5px 10px; }
-  .foot  { text-align: center; font-size: 17px; font-weight: 700; }
-  .foot .date { font-size: 15px; margin-top: 3px; }
+  .waiter { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+  .item   { font-size: 21px; font-weight: 700; margin: 4px 0; }
+  .note   { font-size: 14px; margin: 0 0 4px 10px; }
+  .when   { font-size: 15px; font-weight: 700; margin-top: 8px; white-space: nowrap; }
 </style></head>
 <body>
-  <div class="title">ሶፊ በሶ</div>
-  <div class="sub">የኩሽና ትእዛዝ</div>
-  ${order.branchName ? `<div class="branch">${escapeHtml(order.branchName)}</div>` : ""}
-  <div class="info">አስተናጋጅ: ${escapeHtml(order.waiterName)}</div>
-  <div class="info">አቀራረብ: ${servingModeText(order.servingMode)}</div>
-  <div class="rule"></div>
+  <div class="waiter">${escapeHtml(order.waiterName)}</div>
   ${rows}
-  <div class="rule"></div>
-  <div class="foot">
-    <div>${escapeHtml(time)}</div>
-    <div class="date">${escapeHtml(date)}</div>
-  </div>
+  <div class="when">${escapeHtml(ticketDateTime(order.createdAt))}</div>
 </body></html>`;
 }
 
@@ -252,30 +310,40 @@ async function printViaBrowser(order: ReceiptOrder): Promise<void> {
 
 // ============================================================
 
-/**
- * Prints a kitchen ticket. Terminals running the local agent use it;
- * everything else prints through the OS printer driver.
- */
-export async function printReceipt(order: ReceiptOrder): Promise<void> {
+async function printNow(order: ReceiptOrder): Promise<void> {
+  if (
+    printMode === "unknown" ||
+    (printMode === "browser" && Date.now() - lastProbeAt > AGENT_REPROBE_MS)
+  ) {
+    lastProbeAt = Date.now();
+    printMode = (await agentIsUp()) ? "agent" : "browser";
+  }
+
   if (printMode === "browser") return printViaBrowser(order);
 
-  if (printMode === "agent") {
-    try {
-      return await printViaAgent(order);
-    } catch (err) {
-      // Agent died mid-service — keep printing rather than lose the ticket.
-      console.warn("Print agent failed, falling back to browser print", err);
-      printMode = "browser";
-      return printViaBrowser(order);
-    }
-  }
-
-  // First order this session: find out which path works.
   try {
     await printViaAgent(order);
-    printMode = "agent";
-  } catch {
+  } catch (err) {
+    if (!(err instanceof AgentUnreachable)) throw err;
+    // The agent stopped: print this ticket through the browser and look
+    // for the agent again later.
+    console.warn("Print agent not reachable, printing through the browser", err);
     printMode = "browser";
+    lastProbeAt = Date.now();
     await printViaBrowser(order);
   }
+}
+
+/** Tickets print one after another, in the order they were sent. */
+let queue: Promise<void> = Promise.resolve();
+
+/**
+ * Prints a kitchen ticket. Returns as soon as the ticket is queued would be
+ * too early to report errors, so the promise settles when this ticket has
+ * printed (or failed); callers should not make the cashier wait for it.
+ */
+export function printReceipt(order: ReceiptOrder): Promise<void> {
+  const job = queue.then(() => printNow(order));
+  queue = job.catch(() => undefined);
+  return job;
 }
