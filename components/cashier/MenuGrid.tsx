@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { MenuRow } from "@/types/menu";
+import { POPULAR } from "@/hooks/useMenu";
 
 type Props = {
   categories: string[];
@@ -28,7 +29,12 @@ export function MenuGrid({
   error,
   onSelect,
 }: Props) {
-  const showCategoryLabel = activeCategory === "All";
+  // Mixed sections show which category each item comes from.
+  const showCategoryLabel =
+    activeCategory === "All" || activeCategory === POPULAR;
+
+  const label = (c: string) =>
+    c === POPULAR ? "★ በብዛት የሚታዘዙ" : c === "All" ? "ሁሉም" : c;
 
   return (
     <Card className="flex h-full min-h-0 min-w-0 flex-col gap-0 border-slate-200 bg-white p-0 shadow-sm">
@@ -49,7 +55,7 @@ export function MenuGrid({
                     : "border-slate-300 bg-white text-slate-700 hover:bg-slate-100",
                 ].join(" ")}
               >
-                {c === "All" ? "ሁሉም" : c}
+                {label(c)}
               </Button>
             );
           })}
@@ -97,12 +103,14 @@ export function MenuGrid({
                       </span>
                     ) : null}
 
-                    <div className="line-clamp-2 pr-8 text-sm font-extrabold leading-tight text-slate-950">
+                    {/* The name is what the cashier looks for: large and bold. */}
+                    <div className="line-clamp-2 pr-8 text-lg font-extrabold leading-snug text-slate-950">
                       {m.name}
                     </div>
 
+                    {/* The price is a quiet subtitle. */}
                     <div className="flex items-end justify-between gap-2">
-                      <div className="text-lg font-extrabold tabular-nums text-slate-950">
+                      <div className="text-sm font-medium tabular-nums text-slate-500">
                         {money(Number(m.price))}
                       </div>
                       {showCategoryLabel ? (

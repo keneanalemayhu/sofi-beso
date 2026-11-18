@@ -56,7 +56,6 @@ function shiftDay(day: string, delta: number) {
 const STATUS_LABEL: Record<string, string> = {
   completed: "ተጠናቋል",
   voided: "ጠፍቷል",
-  pending: "በመጠባበቅ ላይ",
 };
 
 export function OrdersHistoryScreen({ branchSlug }: { branchSlug: string }) {
@@ -386,7 +385,7 @@ function OrderCard({
     0,
   );
 
-  const status = order.status ?? "pending";
+  const status = order.status ?? "completed";
 
   return (
     <Card className="rounded-xl border-slate-200 bg-white px-3 py-2.5 shadow-sm">
@@ -415,15 +414,6 @@ function OrderCard({
                 includeTime: true,
               })}
             </div>
-
-            {order.completed_at ? (
-              <div className="text-xs text-slate-500">
-                ተጠናቀቀ:{" "}
-                {formatDateTime(new Date(order.completed_at), {
-                  includeTime: true,
-                })}
-              </div>
-            ) : null}
 
             <div className="mt-2 flex flex-wrap gap-2">
               <Badge

@@ -22,7 +22,7 @@ function filterOrdersByDay(
   includeVoided: boolean,
 ) {
   return orders.filter((row) => {
-    const status = row.order.status ?? "pending";
+    const status = row.order.status ?? "completed";
 
     if (!includeVoided && status === "voided") {
       return false;
